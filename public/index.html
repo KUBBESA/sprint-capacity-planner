@@ -483,7 +483,7 @@ let addPersonRole = 'dev';
 
 async function fetchJiraMembers(force) {
   if (jiraMembersCache && !force) return jiraMembersCache;
-  const res = await fetch(`${PROXY_BASE}/api/jira/members`);
+  const res = await fetch("/api/jira/members", { credentials: "include" });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || res.statusText);
@@ -1187,7 +1187,7 @@ function loadCarryOver() {
   recalc();
 }
 
-const PROXY_BASE = 'https://9smw7p8nwh.execute-api.us-east-1.amazonaws.com/prod';
+// const PROXY_BASE removido - usamos paths relativos
 const JIRA_SITE = 'https://team-crediviva.atlassian.net';
 
 async function loadBoardActual() {
@@ -1209,7 +1209,7 @@ async function loadJiraSprintSelect() {
   if (!sel) return null;
   sel.innerHTML = '<option value="">Cargando sprints…</option>';
   try {
-    const res = await fetch(`${PROXY_BASE}/api/jira/sprints`);
+    const res = await fetch("/api/jira/sprints", { credentials: "include" });
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.statusText);
     const sprints = await res.json();
     jiraSprintsCache = sprints;
@@ -1234,7 +1234,7 @@ async function importStoriesFromJira() {
   const label = labelEl ? labelEl.textContent : val;
   if (stories.length && !confirm(`Esto reemplaza las ${stories.length} historia(s) actuales por las historias abiertas de ${label.trim()}. ¿Continuar?`)) return;
   try {
-    const res = await fetch(`${PROXY_BASE}/api/jira/stories?sprint=${encodeURIComponent(val)}`);
+    const res = await fetch(`/api/jira/stories?sprint=${encodeURIComponent(val)}`, { credentials: "include" });
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.statusText);
     const list = await res.json();
     if (!Array.isArray(list) || !list.length) { alert('No hay historias abiertas en ' + label.trim() + '.'); return; }
@@ -1303,7 +1303,7 @@ async function flushJiraHoursSave() {
   let ok = 0;
   for (const item of payloads) {
     try {
-      const res = await fetch(`${PROXY_BASE}/api/jira/story-hours`, {
+      const res = await fetch("/api/jira/story-hours", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(item),
