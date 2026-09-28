@@ -8,33 +8,27 @@ frontend:
       commands:
         - echo "Build complete"
   artifacts:
-    baseDirectory: .
+    baseDirectory: public
     files:
       - '**/*'
   rewritesAndRedirects:
-    # Auth routes → API Gateway
     - source: /auth/login
-      target: https://cctqr6dqrk.execute-api.us-east-1.amazonaws.com/auth/login
+      target: https://9smw7p8nwh.execute-api.us-east-1.amazonaws.com/prod/auth/login
       status: 200
     - source: /auth/callback
-      target: https://cctqr6dqrk.execute-api.us-east-1.amazonaws.com/auth/callback
+      target: https://9smw7p8nwh.execute-api.us-east-1.amazonaws.com/prod/auth/callback
       status: 200
     - source: /auth/me
-      target: https://cctqr6dqrk.execute-api.us-east-1.amazonaws.com/auth/me
+      target: https://9smw7p8nwh.execute-api.us-east-1.amazonaws.com/prod/auth/me
       status: 200
     - source: /auth/logout
-      target: https://cctqr6dqrk.execute-api.us-east-1.amazonaws.com/auth/logout
+      target: https://9smw7p8nwh.execute-api.us-east-1.amazonaws.com/prod/auth/logout
       status: 200
-    # API routes → API Gateway
     - source: /api/jira/<*>
-      target: https://cctqr6dqrk.execute-api.us-east-1.amazonaws.com/api/jira/$1
+      target: https://9smw7p8nwh.execute-api.us-east-1.amazonaws.com/prod/api/jira/$1
       status: 200
     - source: /api/planner/<*>
-      target: https://cctqr6dqrk.execute-api.us-east-1.amazonaws.com/api/planner/$1
-      status: 200
-    # SPA fallback → index.html
-    - source: /<*>\.html
-      target: /index.html
+      target: https://9smw7p8nwh.execute-api.us-east-1.amazonaws.com/prod/api/planner/$1
       status: 200
     - source: /<*>
       target: /index.html
