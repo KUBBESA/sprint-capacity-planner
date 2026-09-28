@@ -1,0 +1,354 @@
+# Sprint Capacity Planner — despliegue sin servidor (SAM / CloudFormation)
+#
+# Arquitectura: un solo CloudFront
+#   - default: estaticos desde S3 (via Origin Access Control)
+#   - /api/* y /auth/*: API Gateway HTTP API -> Lambda (Jira OAuth 2.0 por usuario)
+# Dominio: sprint.crediviva.com.pa (ACM us-east-1 + Route53)
+#
+# Deploy (Fase 4):
+#   sam build && sam deploy --guided \
+#     --parameter-overrides HostedZoneId=ZXXXXXXXXX \
+#       ClientId=<de la app OAuth Atlassian> ClientSecret=<...>
+#
+# Requisitos de la app OAuth 2.0 (3LO) en developer.atlassian.com:
+#   - URL de redireccion: https://sprint.crediviva.com.pa/auth/callback
+#   - Scopes: read:jira-user read:jira-work write:jira-work offline_access
+#   - Grant restringido al site: https://team-crediviva.atlassian.net
+#   - "Release" + "Distribute" para que la app quede instalada en el site.
+#
+# Regiones: la pila y el certificado ACM deben crearse en us-east-1 (CloudFront exige
+# certificados us-east-1). La zona Route53 de crediviva.com.pa debe existir en la cuenta.
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Sprint Capacity Planner — frontend + API + sesiones compartidas por equipo
+
+Parameters:
+  AppDomain:
+    Type: String
+    Default: sprint.crediviva.com.pa
+    Description: Subdominio publico de la app
+  HostedZoneId:
+    Type: String
+    Description: Zona Route53 (p.ej. crediviva.com.pa) para crear el registro del subdominio
+  SiteUrl:
+    Type: String
+    Default: https://team-crediviva.atlassian.net
+    Description: Site de Atlassian restringido en la app OAuth
+  ClientId:
+    Type: String
+    NoEcho: true
+    Description: Client ID de la app OAuth 2.0 (3LO) de Atlassian
+  ClientSecret:
+    Type: String
+    NoEcho: true
+    Description: Client Secret de la app OAuth 2.0 (3LO) de Atlassian
+
+Globals:
+  Function:
+    Runtime: nodejs24.x
+    Timeout: 30
+    MemorySize: 256
+    Handler: handler.handler
+    Environment:
+      Variables:
+        CLIENT_ID: !Ref ClientId
+        CLIENT_SECRET: !Ref ClientSecret
+        SITE_URL: !Ref SiteUrl
+        APP_ORIGIN: !Sub https://${AppDomain}
+        REDIRECT_URI: !Sub https://${AppDomain}/auth/callback
+        COOKIE_DOMAIN: !Sub .${AppDomain}
+        SESSIONS_TABLE: !Ref SessionsTable
+        PLANNER_TABLE: !Ref PlannerTable
+        PERSONAL_DATA_TABLE: !Ref PersonalDataTable
+
+Resources:
+  # ---- Capa con la logica compartida (planner-core.mjs -> /opt/planner-core.mjs) ----
+  PlannerCoreLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: planner-core
+      ContentUri: layer-content/
+      CompatibleRuntimes:
+        - nodejs24.x
+      RetentionPolicy: Retain
+
+  # ---- Tables DynamoDB ----
+  SessionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: sessionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: sessionId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  PlannerTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+
+  # Registro de datos personales (Personal Data Reporting API): accountId -> updatedAt.
+  PersonalDataTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: accountId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: accountId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+
+  # ---- Backend Lambda + HTTP API ----
+  BackendFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/
+      Layers:
+        - !Ref PlannerCoreLayer
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SessionsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PlannerTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PersonalDataTable
+      Events:
+        ApiAny:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /{proxy+}
+            Method: ANY
+        ReportSchedule:
+          Type: Schedule
+          Properties:
+            Schedule: 'cron(23 3 ? * MON *)' # semanal, lunes 03:23 UTC (fuera de horas pico)
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+
+  # ---- Estaticos (S3 privado, servido por CloudFront con OAC) ----
+  StaticBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub scp-static-${AWS::AccountId}-${AWS::Region}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+
+  StaticBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref StaticBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub ${StaticBucket.Arn}/*
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}
+
+  ApiOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub scp-oac-${AWS::StackName}
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # ---- Certificado + distribucion CloudFront ----
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref AppDomain
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !Ref AppDomain
+          HostedZoneId: !Ref HostedZoneId
+
+  # Politicas de cache personalizadas (evita IDs de managed policies que pueden no existir)
+  CachePolicyStatic:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub scp-cache-static-${AWS::StackName}
+        DefaultTTL: 86400
+        MaxTTL: 31536000
+        MinTTL: 1
+        ParametersInCacheKeyAndForwardedToOrigin:
+          CookiesConfig: { CookieBehavior: none }
+          HeadersConfig: { HeaderBehavior: none }
+          QueryStringsConfig: { QueryStringBehavior: none }
+          EnableAcceptEncodingGzip: true
+          EnableAcceptEncodingBrotli: true
+
+  CachePolicyApi:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub scp-cache-api-${AWS::StackName}
+        DefaultTTL: 0
+        MaxTTL: 0
+        MinTTL: 0
+        ParametersInCacheKeyAndForwardedToOrigin:
+          CookiesConfig: { CookieBehavior: none }
+          HeadersConfig: { HeaderBehavior: none }
+          QueryStringsConfig: { QueryStringBehavior: none }
+          EnableAcceptEncodingGzip: false
+          EnableAcceptEncodingBrotli: false
+
+  OriginRequestPolicyS3:
+    Type: AWS::CloudFront::OriginRequestPolicy
+    Properties:
+      OriginRequestPolicyConfig:
+        Name: !Sub scp-origin-s3-${AWS::StackName}
+        CookiesConfig: { CookieBehavior: none }
+        HeadersConfig: { HeaderBehavior: none }
+        QueryStringsConfig: { QueryStringBehavior: none }
+
+  OriginRequestPolicyApi:
+    Type: AWS::CloudFront::OriginRequestPolicy
+    Properties:
+      OriginRequestPolicyConfig:
+        Name: !Sub scp-origin-api-${AWS::StackName}
+        CookiesConfig: { CookieBehavior: all }
+        HeadersConfig: { HeaderBehavior: allViewer }
+        QueryStringsConfig: { QueryStringBehavior: all }
+
+  FixApiHostFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub FixApiHost-${AWS::StackName}
+      FunctionCode: |
+        function handler(event) {
+          var request = event.request;
+          var uri = request.uri;
+          if (uri.indexOf('/api/') === 0 || uri.indexOf('/auth/') === 0) {
+            request.headers.host = { value: 'cctqr6dqrk.execute-api.us-east-1.amazonaws.com' };
+          }
+          return request;
+        }
+      FunctionConfig:
+        Comment: Fix Host header for API Gateway requests
+        Runtime: cloudfront-js-2.0
+
+  FixApiHostFunctionAssociation:
+    Type: AWS::CloudFront::FunctionAssociation
+    Properties:
+      DistributionId: !Ref CloudFrontDistribution
+      EventType: viewer-request
+      FunctionARN: !GetAtt FixApiHostFunction.FunctionARN
+      PathPattern: /api/*
+
+  FixApiHostFunctionAssociation2:
+    Type: AWS::CloudFront::FunctionAssociation
+    Properties:
+      DistributionId: !Ref CloudFrontDistribution
+      EventType: viewer-request
+      FunctionARN: !GetAtt FixApiHostFunction.FunctionARN
+      PathPattern: /auth/*
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        HttpVersion: http2
+        DefaultRootObject: index.html
+        PriceClass: PriceClass_100
+        Aliases:
+          - !Ref AppDomain
+        ViewerCertificate:
+          AcmCertificateArn: !Ref Certificate
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
+        DefaultCacheBehavior:
+          TargetOriginId: s3-origin
+          ViewerProtocolPolicy: redirect-to-https
+          Compress: true
+          CachePolicyId: !Ref CachePolicyStatic
+          OriginRequestPolicyId: !Ref OriginRequestPolicyS3
+        CacheBehaviors:
+          - PathPattern: /api/*
+            TargetOriginId: api-origin
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [HEAD, DELETE, POST, GET, OPTIONS, PUT, PATCH]
+            CachePolicyId: !Ref CachePolicyApi
+            OriginRequestPolicyId: !Ref OriginRequestPolicyApi
+          - PathPattern: /auth/*
+            TargetOriginId: api-origin
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [HEAD, GET, OPTIONS]
+            CachePolicyId: !Ref CachePolicyApi
+            OriginRequestPolicyId: !Ref OriginRequestPolicyApi
+        Origins:
+          - Id: s3-origin
+            DomainName: !Sub ${StaticBucket.RegionalDomainName}
+            OriginAccessControlId: !Ref ApiOriginAccessControl
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+          - Id: api-origin
+            DomainName: !Select [2, !Split ['/', !Sub '${HttpApi.ApiEndpoint}']]
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols: [TLSv1.2]
+              OriginReadTimeout: 30
+
+  # ---- DNS ----
+  DnsRecordA:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref AppDomain
+      Type: A
+      AliasTarget:
+        HostedZoneId: Z2FDTNDATAQYW2 # CloudFront (fijo)
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+  DnsRecordAAAA:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref AppDomain
+      Type: AAAA
+      AliasTarget:
+        HostedZoneId: Z2FDTNDATAQYW2
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+
+Outputs:
+  SiteUrl:
+    Value: !Sub https://${AppDomain}
+  CloudFrontDomain:
+    Value: !GetAtt CloudFrontDistribution.DomainName
+  ApiBaseUrl:
+    Value: !GetAtt HttpApi.ApiEndpoint
+  LoginUrl:
+    Value: !Sub https://${AppDomain}/auth/login

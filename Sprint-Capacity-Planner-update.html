@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprint Capacity Planner con Restricciones de Skills y Carriles</title>
+    <!-- FontAwesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Estilos limpios embebidos -->
+    <style>
+        *, ::before, ::after { box-sizing: border-box; border-width: 0; border-style: solid; border-color: #e2e8f0; }
+        body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; background-color: #f8fafc; color: #1e293b; min-height: 100vh; display: flex; flex-direction: column; }
+        .max-w-7xl { max-width: 90rem; margin-left: auto; margin-right: auto; }
+        .w-full { width: 100%; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-1 { gap: 0.25rem; } .gap-2 { gap: 0.5rem; } .gap-3 { gap: 0.75rem; } .gap-4 { gap: 1rem; }
+        .bg-slate-900 { background-color: #0f172a; }
+        .bg-slate-800 { background-color: #1e293b; }
+        .bg-white { background-color: #ffffff; }
+        .bg-slate-50 { background-color: #f8fafc; }
+        .text-white { color: #ffffff; }
+        .text-slate-700 { color: #334155; }
+        .text-slate-600 { color: #475569; }
+        .text-slate-500 { color: #64748b; }
+        .text-indigo-600 { color: #4f46e5; }
+        .text-indigo-400 { color: #818cf8; }
+        .text-emerald-600 { color: #059669; }
+        .text-rose-600 { color: #e11d48; }
+        .font-bold { font-weight: 700; }
+        .font-semibold { font-weight: 600; }
+        .font-medium { font-weight: 500; }
+        .text-xs { font-size: 0.75rem; line-height: 1rem; }
+        .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+        .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+        .p-4 { padding: 1rem; } .p-5 { padding: 1.25rem; }
+        .rounded-xl { border-radius: 0.75rem; } .rounded-lg { border-radius: 0.5rem; }
+        .border { border-width: 1px; } .border-b { border-bottom-width: 1px; } .border-slate-200 { border-color: #e2e8f0; } .border-slate-300 { border-color: #cbd5e1; }
+        .shadow-sm { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+        .grid { display: grid; }
+        .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+        @media (min-width: 768px) {
+            .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+        .overflow-x-auto { overflow-x: auto; }
+        input[type="number"], input[type="text"], select {
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.375rem;
+            padding: 0.375rem 0.55rem;
+            font-size: 0.875rem;
+            color: #1e293b;
+            outline: none;
+        }
+        input:focus, select:focus { border-color: #4f46e5; }
+        button { cursor: pointer; border: none; background: transparent; font-family: inherit; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.875rem; }
+        th, td { padding: 0.75rem 0.75rem; border-bottom: 1px solid #f1f5f9; }
+        th { background-color: #f8fafc; color: #475569; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+        tr:hover { background-color: #f8fafc; }
+        .custom-scrollbar::-webkit-scrollbar { height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .relative { position: relative; }
+        .absolute { position: absolute; }
+        .top-0 { top: 0; } .bottom-0 { bottom: 0; }
+        .z-20 { z-index: 20; }
+        .pointer-events-none { pointer-events-none; }
+        .border-r-2 { border-right-width: 2px; }
+        .border-dashed { border-style: dashed; }
+        .border-rose-500 { border-color: #f43f5e; }
+        .bg-rose-500 { background-color: #f43f5e; }
+        .bg-emerald-100 { background-color: #d1fae5; }
+        .text-emerald-800 { color: #065f46; }
+        .bg-rose-100 { background-color: #ffe4e6; }
+        .text-rose-800 { color: #9f1239; }
+        .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+        .flex-grow { flex-grow: 1; }
+        .space-y-6 > * + * { margin-top: 1.5rem; }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="bg-slate-900 text-white shadow-md py-4 px-6 mb-6">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-xl font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-users-gear text-indigo-400"></i> Sprint Capacity Planner con Control de Skills y Carriles
+                </h1>
+                <p class="text-xs text-slate-400">Asignación automática inteligente con potestad de override manual por restricciones técnicas.</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="resetDefaults()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded transition border border-slate-700">
+                    <i class="fa-solid fa-rotate-right mr-1"></i> Reiniciar ejemplo
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 w-full flex-grow pb-12 space-y-6">
+
+        <!-- Global Configuration & Team Names -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+            <!-- Sprint Config -->
+            <div class="space-y-3">
+                <h2 class="text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <i class="fa-solid fa-gear text-indigo-600 mr-1"></i> Configuración de Sprint
+                </h2>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Sprint Hours (Capacidad)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="number" id="sprintHours" value="40" min="1" oninput="calculateAndRender()" class="w-full font-bold">
+                        <span class="text-sm font-medium text-slate-500">h</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Nº Devs</label>
+                        <input type="number" id="devCount" value="3" min="1" max="6" oninput="updateTeamSize('dev')" class="w-full font-bold text-center">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Nº QAs</label>
+                        <input type="number" id="qaCount" value="2" min="1" max="6" oninput="updateTeamSize('qa')" class="w-full font-bold text-center">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dev Names -->
+            <div class="space-y-3">
+                <h2 class="text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <i class="fa-solid fa-code text-blue-600 mr-1"></i> Nombres de Devs
+                </h2>
+                <div id="devNamesContainer" class="space-y-2"></div>
+            </div>
+
+            <!-- QA Names -->
+            <div class="space-y-3">
+                <h2 class="text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <i class="fa-solid fa-vial text-amber-600 mr-1"></i> Nombres de QAs
+                </h2>
+                <div id="qaNamesContainer" class="space-y-2"></div>
+            </div>
+        </div>
+
+        <!-- Backlog Table -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">
+                    <i class="fa-solid fa-table mr-1.5 text-indigo-600"></i> Backlog y Asignación Dinámica / Manual
+                </h2>
+                <button onclick="addStory()" class="bg-indigo-600 text-white text-xs px-3 py-1.5 rounded font-medium shadow-sm flex items-center gap-1">
+                    <i class="fa-solid fa-plus"></i> Añadir US
+                </button>
+            </div>
+            <div class="overflow-x-auto">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="w-16 text-center">Orden</th>
+                            <th>User Story</th>
+                            <th class="text-center w-24">Horas Dev</th>
+                            <th class="text-center w-24">Horas QA</th>
+                            <th class="text-center w-36">Dev Asignado</th>
+                            <th class="text-center w-28">Dev Fin</th>
+                            <th class="text-center w-36">QA Asignado</th>
+                            <th class="text-center w-28">QA Finish</th>
+                            <th class="text-center w-28">Holgura</th>
+                            <th class="text-center w-36">Estado</th>
+                            <th class="text-center w-16">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="storiesTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Visual Timeline Canvas -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-6">
+            <div class="flex justify-between items-center border-b border-slate-200 pb-3">
+                <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">
+                    <i class="fa-solid fa-timeline mr-1.5 text-indigo-600"></i> Diagrama de Carriles por Miembro del Equipo
+                </h2>
+                <div class="flex items-center gap-4 text-xs font-medium text-slate-500">
+                    <span class="flex items-center gap-1.5"><span style="width:12px;height:12px;background:#6366f1;display:inline-block;border-radius:2px;"></span> Dev Lane</span>
+                    <span class="flex items-center gap-1.5"><span style="width:12px;height:12px;background:#f59e0b;display:inline-block;border-radius:2px;"></span> QA Lane</span>
+                    <span class="flex items-center gap-1.5"><span style="width:12px;height:12px;background:#f43f5e;display:inline-block;border-radius:2px;"></span> Fuera de Sprint</span>
+                </div>
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="overflow-x-auto custom-scrollbar pb-2">
+                <div id="timelineContainer" class="min-w-[700px] relative pt-6 pb-4">
+                    <!-- SPRINT END Marker Line -->
+                    <div id="sprintEndMarker" class="absolute top-0 bottom-0 z-20 border-r-2 border-dashed border-rose-500 flex flex-col items-end pointer-events-none" style="left: 100%;">
+                        <div class="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm -mr-3 select-none">
+                            SPRINT END (<span id="markerSprintHours">40</span>h)
+                        </div>
+                    </div>
+
+                    <!-- Escala de horas superior -->
+                    <div class="relative h-6 border-b border-slate-300 text-xs font-mono text-slate-400 mb-4" id="timelineScale">
+                        <span class="absolute left-0 -top-1">0h</span>
+                        <span id="scaleMid" class="absolute -top-1" style="left: 50%; transform: translateX(-50%);">20h</span>
+                        <span id="scaleEnd" class="absolute right-0 -top-1">40h</span>
+                    </div>
+
+                    <!-- Contenedor dinámico de carriles -->
+                    <div id="resourceLanesContainer" class="space-y-4"></div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-4 text-xs text-slate-400 border-t border-slate-200 bg-white">
+        Sprint Capacity & Multi-Resource Planner &copy; 2026
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        let devNames = ["Carlos", "María", "Alex"];
+        let qaNames = ["Sofia", "Luis"];
+
+        let stories = [
+            { id: "US-01", dev: 8, qa: 4, forcedDev: "auto", forcedQa: "auto" },
+            { id: "US-02", dev: 12, qa: 6, forcedDev: "auto", forcedQa: "auto" },
+            { id: "US-03", dev: 8, qa: 4, forcedDev: "auto", forcedQa: "auto" },
+            { id: "US-04", dev: 12, qa: 6, forcedDev: "auto", forcedQa: "auto" }
+        ];
+
+        const colors = ['#6366f1', '#0ea5e9', '#14b8a6', '#10b981', '#8b5cf6', '#a855f7', '#f59e0b', '#f43f5e'];
+
+        function resetDefaults() {
+            document.getElementById('sprintHours').value = 40;
+            document.getElementById('devCount').value = 3;
+            document.getElementById('qaCount').value = 2;
+            devNames = ["Carlos", "María", "Alex"];
+            qaNames = ["Sofia", "Luis"];
+            stories = [
+                { id: "US-01", dev: 8, qa: 4, forcedDev: "auto", forcedQa: "auto" },
+                { id: "US-02", dev: 12, qa: 6, forcedDev: "auto", forcedQa: "auto" },
+                { id: "US-03", dev: 8, qa: 4, forcedDev: "auto", forcedQa: "auto" },
+                { id: "US-04", dev: 12, qa: 6, forcedDev: "auto", forcedQa: "auto" }
+            ];
+            renderTeamInputs();
+            calculateAndRender();
+        }
+
+        function updateTeamSize(type) {
+            if (type === 'dev') {
+                let count = parseInt(document.getElementById('devCount').value) || 1;
+                if (count < 1) count = 1; if (count > 6) count = 6;
+                document.getElementById('devCount').value = count;
+                while (devNames.length < count) devNames.push(`Dev ${devNames.length + 1}`);
+                if (devNames.length > count) devNames = devNames.slice(0, count);
+            } else {
+                let count = parseInt(document.getElementById('qaCount').value) || 1;
+                if (count < 1) count = 1; if (count > 6) count = 6;
+                document.getElementById('qaCount').value = count;
+                while (qaNames.length < count) qaNames.push(`QA ${qaNames.length + 1}`);
+                if (qaNames.length > count) qaNames = qaNames.slice(0, count);
+            }
+            renderTeamInputs();
+            calculateAndRender();
+        }
+
+        function renderTeamInputs() {
+            const devContainer = document.getElementById('devNamesContainer');
+            devContainer.innerHTML = '';
+            devNames.forEach((name, idx) => {
+                let div = document.createElement('div');
+                div.className = 'flex items-center gap-2';
+                div.innerHTML = `
+                    <span class="text-xs font-mono text-slate-400 w-12">Dev ${idx+1}</span>
+                    <input type="text" value="${name}" oninput="devNames[${idx}] = this.value; calculateAndRender();" class="w-full">
+                `;
+                devContainer.appendChild(div);
+            });
+
+            const qaContainer = document.getElementById('qaNamesContainer');
+            qaContainer.innerHTML = '';
+            qaNames.forEach((name, idx) => {
+                let div = document.createElement('div');
+                div.className = 'flex items-center gap-2';
+                div.innerHTML = `
+                    <span class="text-xs font-mono text-slate-400 w-12">QA ${idx+1}</span>
+                    <input type="text" value="${name}" oninput="qaNames[${idx}] = this.value; calculateAndRender();" class="w-full">
+                `;
+                qaContainer.appendChild(div);
+            });
+        }
+
+        function updateStoryValue(index, field, value) {
+            if (field === 'dev' || field === 'qa') {
+                stories[index][field] = Math.max(0, parseFloat(value) || 0);
+            } else if (field === 'id' || field === 'forcedDev' || field === 'forcedQa') {
+                stories[index][field] = value;
+            }
+            calculateAndRender();
+        }
+
+        function addStory() {
+            if (stories.length >= 15) return;
+            let nextNum = stories.length + 1;
+            stories.push({ id: `US-0${nextNum}`.slice(-6), dev: 4, qa: 2, forcedDev: "auto", forcedQa: "auto" });
+            calculateAndRender();
+        }
+
+        function removeStory(index) {
+            if (stories.length <= 1) {
+                alert("Debe existir al menos una User Story.");
+                return;
+            }
+            stories.splice(index, 1);
+            calculateAndRender();
+        }
+
+        function calculateAndRender() {
+            const sprintHours = Math.max(1, parseFloat(document.getElementById('sprintHours').value) || 40);
+            const devCount = devNames.length;
+            const qaCount = qaNames.length;
+
+            let devTimelines = new Array(devCount).fill(0);
+            let qaTimelines = new Array(qaCount).fill(0);
+
+            let pendingStories = stories.map((s, index) => ({ ...s, originalIndex: index }));
+            pendingStories.sort((a, b) => a.originalIndex - b.originalIndex);
+
+            let devResults = [];
+
+            // PASO 1: Asignación de Desarrollo (Soporta Auto por disponibilidad o Forzado manual)
+            pendingStories.forEach(story => {
+                let assignedDevIdx;
+                if (story.forcedDev !== "auto") {
+                    assignedDevIdx = parseInt(story.forcedDev);
+                } else {
+                    assignedDevIdx = devTimelines.indexOf(Math.min(...devTimelines));
+                }
+
+                let devStart = devTimelines[assignedDevIdx];
+                let devFinish = devStart + story.dev;
+                devTimelines[assignedDevIdx] = devFinish;
+
+                devResults.push({
+                    ...story,
+                    devStart,
+                    devFinish,
+                    devResource: assignedDevIdx
+                });
+            });
+
+            // PASO 2: Ordenar estrictamente por momento en que terminan dev para QA
+            devResults.sort((a, b) => {
+                if (a.devFinish !== b.devFinish) return a.devFinish - b.devFinish;
+                return a.originalIndex - b.originalIndex;
+            });
+
+            let calculatedStoriesMap = [];
+
+            // PASO 3: Asignación de QA (Soporta Auto por disponibilidad pura o Forzado manual)
+            devResults.forEach(story => {
+                let assignedQaIdx;
+                if (story.forcedQa !== "auto") {
+                    assignedQaIdx = parseInt(story.forcedQa);
+                } else {
+                    let minQaTime = Math.min(...qaTimelines);
+                    assignedQaIdx = qaTimelines.indexOf(minQaTime);
+                }
+
+                let qaStart = Math.max(story.devFinish, qaTimelines[assignedQaIdx]);
+                let qaFinish = qaStart + story.qa;
+                qaTimelines[assignedQaIdx] = qaFinish;
+
+                const slack = sprintHours - qaFinish;
+                const isCommitted = qaFinish <= sprintHours;
+
+                calculatedStoriesMap.push({
+                    ...story,
+                    qaStart,
+                    qaFinish,
+                    qaResource: assignedQaIdx,
+                    slack,
+                    isCommitted
+                });
+            });
+
+            // Restaurar orden original para la tabla del backlog
+            calculatedStoriesMap.sort((a, b) => a.originalIndex - b.originalIndex);
+
+            renderTable(calculatedStoriesMap, devNames, qaNames);
+            renderTimeline(calculatedStoriesMap, sprintHours, devNames, qaNames);
+        }
+
+        function renderTable(calculatedStories, devs, qas) {
+            const tbody = document.getElementById('storiesTableBody');
+            tbody.innerHTML = '';
+
+            calculatedStories.forEach((s, idx) => {
+                let slackDisplay = s.slack >= 0 ? `+${s.slack}h` : `${s.slack}h`;
+                let slackClass = s.slack >= 0 ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-semibold';
+                
+                let statusBadge = s.isCommitted 
+                    ? `<span class="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-xs px-2.5 py-1 rounded-full font-medium"><i class="fa-solid fa-check"></i> Comometida</span>`
+                    : `<span class="inline-flex items-center gap-1 bg-rose-100 text-rose-800 text-xs px-2.5 py-1 rounded-full font-medium"><i class="fa-solid fa-xmark"></i> Fuera (${Math.abs(s.slack)}h)</span>`;
+
+                // Select for Dev
+                let devSelectHtml = `<select onchange="updateStoryValue(${idx}, 'forcedDev', this.value)" style="width: 120px; font-size: 12px;">`;
+                devSelectHtml += `<option value="auto" ${s.forcedDev === 'auto' ? 'selected' : ''}>⚡ Auto (Disponible)</option>`;
+                devs.forEach((dName, dIdx) => {
+                    devSelectHtml += `<option value="${dIdx}" ${s.forcedDev == dIdx ? 'selected' : ''}>${dName}</option>`;
+                });
+                devSelectHtml += `</select>`;
+
+                // Select for QA
+                let qaSelectHtml = `<select onchange="updateStoryValue(${idx}, 'forcedQa', this.value)" style="width: 120px; font-size: 12px;">`;
+                qaSelectHtml += `<option value="auto" ${s.forcedQa === 'auto' ? 'selected' : ''}>⚡ Auto (Disponible)</option>`;
+                qas.forEach((qName, qIdx) => {
+                    qaSelectHtml += `<option value="${qIdx}" ${s.forcedQa == qIdx ? 'selected' : ''}>${qName}</option>`;
+                });
+                qaSelectHtml += `</select>`;
+
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="text-center font-mono text-slate-400 text-xs">#${idx + 1}</td>
+                    <td><input type="text" value="${s.id}" oninput="updateStoryValue(${idx}, 'id', this.value)" style="width: 90px; font-weight: 600;"></td>
+                    <td class="text-center"><input type="number" value="${s.dev}" min="0" oninput="updateStoryValue(${idx}, 'dev', this.value)" style="width: 65px; text-align: center;"></td>
+                    <td class="text-center"><input type="number" value="${s.qa}" min="0" oninput="updateStoryValue(${idx}, 'qa', this.value)" style="width: 65px; text-align: center;"></td>
+                    <td class="text-center">${devSelectHtml}</td>
+                    <td class="text-center font-mono text-slate-600">${s.devFinish}h</td>
+                    <td class="text-center">${qaSelectHtml}</td>
+                    <td class="text-center font-mono text-slate-600">${s.qaFinish}h</td>
+                    <td class="text-center font-mono ${slackClass}">${slackDisplay}</td>
+                    <td class="text-center">${statusBadge}</td>
+                    <td class="text-center">
+                        <button onclick="removeStory(${idx})" style="color: #94a3b8; padding: 4px;" title="Eliminar US"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderTimeline(calculatedStories, sprintHours, devs, qas) {
+            document.getElementById('markerSprintHours').innerText = sprintHours;
+            document.getElementById('scaleMid').innerText = `${Math.round(sprintHours / 2)}h`;
+            document.getElementById('scaleEnd').innerText = `${sprintHours}h`;
+
+            let maxTimelineHours = sprintHours;
+            calculatedStories.forEach(s => { if (s.qaFinish > maxTimelineHours) maxTimelineHours = s.qaFinish; });
+            maxTimelineHours = Math.max(sprintHours, Math.ceil(maxTimelineHours * 1.05));
+
+            let sprintEndPercent = (sprintHours / maxTimelineHours) * 100;
+            document.getElementById('sprintEndMarker').style.left = `${sprintEndPercent}%`;
+
+            const container = document.getElementById('resourceLanesContainer');
+            container.innerHTML = '';
+
+            // --- CARRRILES DE DESARROLLADORES ---
+            let devHeader = document.createElement('div');
+            devHeader.innerHTML = `<span class="text-xs font-bold text-slate-600 uppercase"><i class="fa-solid fa-code text-indigo-600 mr-1"></i> Desarrollo</span>`;
+            container.appendChild(devHeader);
+
+            devs.forEach((devName, dIdx) => {
+                let laneDiv = document.createElement('div');
+                laneDiv.style.cssText = "position:relative; height:38px; background:#f1f5f9; border-radius:6px; border:1px solid #cbd5e1; margin-bottom:6px; display:flex; align-items:center;";
+                
+                let labelDiv = document.createElement('div');
+                labelDiv.style.cssText = "width: 120px; padding-left: 10px; font-size: 11px; font-weight: 700; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-right: 1px solid #cbd5e1; z-index: 15; background: #e2e8f0; height: 100%; display: flex; align-items: center;";
+                labelDiv.innerHTML = `<i class="fa-solid fa-user text-indigo-600 mr-1.5 text-[10px]"></i> ${devName}`;
+                laneDiv.appendChild(labelDiv);
+
+                let trackArea = document.createElement('div');
+                trackArea.style.cssText = "position: relative; flex-grow: 1; height: 100%;";
+
+                let devStories = calculatedStories.filter(s => s.devResource === dIdx);
+                devStories.forEach(s => {
+                    let leftPercent = (s.devStart / maxTimelineHours) * 100;
+                    let widthPercent = (s.dev / maxTimelineHours) * 100;
+                    let bgColor = colors[s.originalIndex % colors.length];
+
+                    let bar = document.createElement('div');
+                    bar.style.cssText = `position:absolute; top:4px; height:28px; border-radius:4px; background:${bgColor}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; padding:0 4px; overflow:hidden; white-space:nowrap; left:${leftPercent}%; width:${widthPercent}%; z-index:10;`;
+                    bar.title = `${s.id} - ${devName} (${s.dev}h)`;
+                    bar.innerHTML = `<span>${s.id} (${s.dev}h)</span>`;
+                    trackArea.appendChild(bar);
+                });
+
+                laneDiv.appendChild(trackArea);
+                container.appendChild(laneDiv);
+            });
+
+            // --- CARRILES DE QA ---
+            let qaHeader = document.createElement('div');
+            qaHeader.style.cssText = "margin-top: 16px;";
+            qaHeader.innerHTML = `<span class="text-xs font-bold text-slate-600 uppercase"><i class="fa-solid fa-vial text-amber-500 mr-1"></i> QA (Pruebas)</span>`;
+            container.appendChild(qaHeader);
+
+            qas.forEach((qaName, qIdx) => {
+                let laneDiv = document.createElement('div');
+                laneDiv.style.cssText = "position:relative; height:38px; background:#f1f5f9; border-radius:6px; border:1px solid #cbd5e1; margin-bottom:6px; display:flex; align-items:center;";
+                
+                let labelDiv = document.createElement('div');
+                labelDiv.style.cssText = "width: 120px; padding-left: 10px; font-size: 11px; font-weight: 700; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-right: 1px solid #cbd5e1; z-index: 15; background: #e2e8f0; height: 100%; display: flex; align-items: center;";
+                labelDiv.innerHTML = `<i class="fa-solid fa-user-shield text-amber-600 mr-1.5 text-[10px]"></i> ${qaName}`;
+                laneDiv.appendChild(labelDiv);
+
+                let trackArea = document.createElement('div');
+                trackArea.style.cssText = "position: relative; flex-grow: 1; height: 100%;";
+
+                let qaStories = calculatedStories.filter(s => s.qaResource === qIdx);
+                qaStories.forEach(s => {
+                    let leftPercent = (s.qaStart / maxTimelineHours) * 100;
+                    let widthPercent = (s.qa / maxTimelineHours) * 100;
+                    let barBg = s.isCommitted ? '#f59e0b' : '#f43f5e';
+
+                    let bar = document.createElement('div');
+                    bar.style.cssText = `position:absolute; top:4px; height:28px; border-radius:4px; background:${barBg}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; padding:0 4px; overflow:hidden; white-space:nowrap; left:${leftPercent}%; width:${widthPercent}%; z-index:10;`;
+                    bar.title = `${s.id} - ${qaName} (Start: ${s.qaStart}h, Finish: ${s.qaFinish}h)`;
+                    bar.innerHTML = `<span>${s.id} (${s.qa}h)</span>`;
+                    trackArea.appendChild(bar);
+                });
+
+                laneDiv.appendChild(trackArea);
+                container.appendChild(laneDiv);
+            });
+        }
+
+        window.onload = function() {
+            renderTeamInputs();
+            calculateAndRender();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,1740 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sprint Capacity Planner — Crediviva</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    #storiesScroll { max-height: 32rem; overflow-y: auto; overscroll-behavior: contain; }
+    #storiesScroll thead th { position: sticky; top: 0; background-color: #f1f5f9; z-index: 1; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+  <header class="bg-slate-900 text-white shadow-md py-2 px-2 mb-3">
+    <div class="max-w-[1440px] mx-auto w-full flex flex-col lg:flex-row justify-between items-center gap-3">
+      <div>
+        <h1 class="text-xl font-bold flex items-center gap-2">
+          <i class="fa-solid fa-calculator text-indigo-400"></i>
+          Sprint Capacity Planner
+        </h1>
+        <p class="text-xs text-slate-400 mt-1">
+          Capacidad real (feriados/ausencias) + prioridad Alta/Media/Baja con peso.
+          <a class="text-indigo-300 underline" href="https://crediviva-images.s3.us-east-1.amazonaws.com/QA-Offset-Validator.html" target="_blank" rel="noopener">QA-Offset-Validator</a>
+        </p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button onclick="loadPdfExample()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded border border-slate-700">
+          <i class="fa-solid fa-file-lines mr-1"></i> Ejemplo PDF
+        </button>
+        <button onclick="loadBoardActual()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded">
+          <i class="fa-solid fa-list-check mr-1"></i> Cargar board Jira
+        </button>
+        <button onclick="openTeamModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded">
+          <i class="fa-solid fa-users-gear mr-1"></i> Equipo desde Jira
+        </button>
+        <button onclick="exportCsv()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded border border-slate-700">
+          <i class="fa-solid fa-download mr-1"></i> Export CSV
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-[1440px] mx-auto w-full flex-grow px-0 pb-6 space-y-3">
+    <!-- Sesiones -->
+    <section class="bg-slate-800 rounded-xl border border-slate-700 shadow-sm px-3 py-2 flex flex-wrap items-center gap-3">
+      <div class="flex items-center gap-2 flex-wrap">
+        <i class="fa-solid fa-floppy-disk text-indigo-400"></i>
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Sesión</span>
+        <input id="sessionTitle" type="text" maxlength="120" placeholder="Título de la sesión…"
+          oninput="onTitleInput()"
+          class="w-64 bg-slate-900 text-white placeholder-slate-500 border border-slate-600 rounded px-2 py-1 text-sm font-semibold" />
+      </div>
+      <span id="authBadge" class="hidden text-xs font-semibold text-white bg-slate-700/60 border border-slate-600/60 rounded-full px-3 py-1 whitespace-nowrap"></span>
+      <div class="flex items-center gap-2 text-xs">
+        <span class="text-slate-400 font-semibold uppercase tracking-wider">Cambiar a:</span>
+        <select id="sessionSelect" onchange="switchSession(this.value)"
+          class="bg-slate-900 text-slate-200 border border-slate-600 rounded px-2 py-1 text-sm font-semibold max-w-64"></select>
+        <span id="sessionStatus" class="text-emerald-400 text-xs font-semibold whitespace-nowrap"></span>
+      </div>
+      <div class="flex flex-wrap gap-2 ml-auto">
+        <button onclick="newSession()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-1.5 rounded">
+          <i class="fa-solid fa-plus mr-1"></i>Nueva
+        </button>
+        <button onclick="deleteSession()" class="bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 text-xs px-3 py-1.5 rounded border border-rose-700/40">
+          <i class="fa-solid fa-trash mr-1"></i>Eliminar
+        </button>
+      </div>
+    </section>
+
+    <!-- Calendario -->
+    <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-3">
+      <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4">
+        <i class="fa-solid fa-calendar-days text-indigo-600 mr-1.5"></i> Calendario del sprint
+      </h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <label class="text-xs text-slate-600">Días hábiles del sprint
+          <input id="sprintWorkDays" type="number" min="1" step="0.5" value="10" oninput="recalc()" class="mt-1 w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold" />
+        </label>
+        <label class="text-xs text-slate-600">Horas / día laboral
+          <input id="hoursPerDay" type="number" min="1" step="0.5" value="8" oninput="recalc()" class="mt-1 w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold" />
+        </label>
+        <label class="text-xs text-slate-600">Feriados (días, todo el equipo)
+          <input id="holidays" type="number" min="0" step="0.5" value="0" oninput="recalc()" class="mt-1 w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold" />
+        </label>
+        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs flex flex-col justify-center">
+          <span class="text-slate-500">Día base por persona</span>
+          <span class="text-lg font-bold text-indigo-700"><span id="baseDays">10</span> d / <span id="baseHours">80</span> h</span>
+        </div>
+      </div>
+      <p class="text-xs text-slate-500 mt-3">
+        Por persona: <code class="bg-slate-100 px-1 rounded">(hábiles − feriados − días libres) × horas/día</code>. Override de horas si hace falta.
+      </p>
+    </section>
+
+    <!-- Personas -->
+    <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-3 space-y-3">
+      <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">
+        <i class="fa-solid fa-users text-indigo-600 mr-1.5"></i> 1. Disponibilidad por persona
+      </h2>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div>
+          <div class="flex justify-between items-center mb-2">
+            <p class="text-xs font-semibold text-slate-500 uppercase">Desarrollo <span class="text-indigo-700 font-bold">· <span id="devCapacity" class="text-sm">0</span> h</span></p>
+            <button onclick="addPerson('dev')" class="text-xs text-indigo-600 hover:underline"><i class="fa-solid fa-plus mr-1"></i>Añadir Dev</button>
+          </div>
+          <div class="overflow-x-auto border border-slate-200 rounded-lg">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="bg-slate-50 text-xs uppercase text-slate-500">
+                  <th class="py-2 px-2 text-left">Nombre</th>
+                  <th class="py-2 px-2 w-24">Días libres</th>
+                  <th class="py-2 px-2 w-24">Horas</th>
+                  <th class="py-2 px-2 w-10"></th>
+                </tr>
+              </thead>
+              <tbody id="devPeopleBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <div class="flex justify-between items-center mb-2">
+            <p class="text-xs font-semibold text-slate-500 uppercase">QA <span class="text-indigo-700 font-bold">· <span id="qaCapacity" class="text-sm">0</span> h</span></p>
+            <button onclick="addPerson('qa')" class="text-xs text-indigo-600 hover:underline"><i class="fa-solid fa-plus mr-1"></i>Añadir QA</button>
+          </div>
+          <div class="overflow-x-auto border border-slate-200 rounded-lg">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="bg-slate-50 text-xs uppercase text-slate-500">
+                  <th class="py-2 px-2 text-left">Nombre</th>
+                  <th class="py-2 px-2 w-24">Días libres</th>
+                  <th class="py-2 px-2 w-24">Horas</th>
+                  <th class="py-2 px-2 w-10"></th>
+                </tr>
+              </thead>
+              <tbody id="qaPeopleBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pesos de prioridad -->
+    <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-3">
+      <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">
+        <i class="fa-solid fa-scale-balanced text-indigo-600 mr-1.5"></i> 2. Prioridad y peso
+      </h2>
+      <div class="grid grid-cols-3 gap-3 mb-3">
+        <label class="text-xs text-slate-600">Peso Alta
+          <input id="weightAlta" type="number" min="1" value="3" oninput="recalc()" class="mt-1 w-full bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 text-sm font-bold text-rose-800" />
+        </label>
+        <label class="text-xs text-slate-600">Peso Media
+          <input id="weightMedia" type="number" min="1" value="2" oninput="recalc()" class="mt-1 w-full bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm font-bold text-amber-800" />
+        </label>
+        <label class="text-xs text-slate-600">Peso Baja
+          <input id="weightBaja" type="number" min="1" value="1" oninput="recalc()" class="mt-1 w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold text-slate-700" />
+        </label>
+      </div>
+      <p class="text-xs text-slate-500">
+        Se comprometen primero las de <strong>mayor peso</strong> (Alta → Media → Baja).
+        Si no alcanza capacidad, lo que queda fuera son las de menor importancia.
+        Dentro del mismo nivel, se respeta el orden de la lista.
+      </p>
+    </section>
+
+    <!-- Reservas -->
+    <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-3">
+      <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4">
+        <i class="fa-solid fa-shield-halved text-indigo-600 mr-1.5"></i> 3. Reservas y mejora continua
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <label class="text-xs text-slate-600">Reserva operativa (%)
+          <select id="opsReservePct" onchange="recalc()" class="mt-1 w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold">
+            <option value="10">10%</option>
+            <option value="15" selected>15% (conservador)</option>
+          </select>
+        </label>
+        <label class="text-xs text-slate-600">Mejora continua (%)
+          <select id="ciReservePct" onchange="recalc()" class="mt-1 w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold">
+            <option value="10">10%</option>
+            <option value="15" selected>15% (conservador)</option>
+          </select>
+        </label>
+        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs space-y-1">
+          <div>Ops Dev/QA: <span id="opsDev" class="font-bold">0</span> / <span id="opsQa" class="font-bold">0</span> h</div>
+          <div>CI Dev/QA: <span id="ciDev" class="font-bold">0</span> / <span id="ciQa" class="font-bold">0</span> h</div>
+        </div>
+      </div>
+      <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3">
+          <p class="text-xs uppercase text-indigo-700 font-semibold">Capacidad comprometible Dev</p>
+          <p class="text-2xl font-bold text-indigo-900"><span id="commitDev">0</span> h</p>
+        </div>
+        <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <p class="text-xs uppercase text-emerald-700 font-semibold">Capacidad comprometible QA</p>
+          <p class="text-2xl font-bold text-emerald-900"><span id="commitQa">0</span> h</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Historias -->
+    <section class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2 bg-slate-50">
+        <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">
+          <i class="fa-solid fa-table mr-1.5 text-indigo-600"></i> 4. Historias (se ordenan por peso al comprometer)
+        </h2>
+        <div class="flex flex-wrap items-center gap-2">
+          <label class="text-xs text-slate-500 flex items-center gap-1.5">
+            Sprint
+            <select id="jiraSprintSelect"
+              class="bg-white border border-slate-300 rounded px-2 py-1.5 text-xs font-medium max-w-56">
+              <option value="">Cargando sprints…</option>
+            </select>
+          </label>
+          <button onclick="importStoriesFromJira()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-medium">
+            <i class="fa-brands fa-jira mr-1"></i> Importar de Jira
+          </button>
+          <span id="jiraSaveStatus" class="text-xs text-slate-500 whitespace-nowrap"></span>
+          <button onclick="addStory()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-medium">
+            <i class="fa-solid fa-plus mr-1"></i> Añadir historia
+          </button>
+        </div>
+      </div>
+      <div id="storiesScroll" class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead>
+            <tr class="bg-slate-100/70 text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200">
+              <th class="py-3 px-3 w-14 text-center">#</th>
+              <th class="py-3 px-3 min-w-[28rem]">Historia / Ticket</th>
+              <th class="py-3 px-3 w-32">Prioridad</th>
+              <th class="py-3 px-3 w-16 text-center">Peso</th>
+              <th class="py-3 px-3 w-24">Dev (h)</th>
+              <th class="py-3 px-3 w-24">QA (h)</th>
+              <th class="py-3 px-3 w-32">Dev Asignado</th>
+              <th class="py-3 px-3 w-32">QA Asignado</th>
+              <th class="py-3 px-3 w-36 text-center">¿Entra?</th>
+              <th class="py-3 px-3 w-24">Saldo Dev</th>
+              <th class="py-3 px-3 w-24">Saldo QA</th>
+              <th class="py-3 px-3 w-12"></th>
+            </tr>
+          </thead>
+          <tbody id="storiesBody"></tbody>
+        </table>
+      </div>
+      <p class="text-xs text-slate-500 px-5 py-3 border-t border-slate-100">
+        Tres casos: <strong>solo Dev</strong> (QA=0), <strong>solo QA</strong> (Dev=0), o <strong>Dev+QA</strong>.
+        Sin horas → No. Cada input se topea al saldo restante de ese rol (ej. quedan 3 QA → máximo 3).
+        <strong>Asignado</strong>: "⚡ Auto" balancea la carga por persona; también puedes forzar manualmente quién la trabaja (restricción técnica).
+      </p>
+    </section>
+
+    <!-- Resultado del sprint -->
+    <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-3">
+      <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">
+        <i class="fa-solid fa-flag-checkered text-indigo-600 mr-1.5"></i> 5. Resultado del sprint
+      </h2>
+      <div class="space-y-2 text-sm">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <p class="text-sm"><span class="text-slate-500">Comprometidas:</span> <span id="committedCount" class="font-bold text-emerald-700"></span></p>
+              <div class="relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none"></i>
+                <input id="committedFilter" type="text" placeholder="Buscar por ID o título…" oninput="renderCommittedList()"
+                  class="w-56 max-w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs" />
+              </div>
+            </div>
+            <div class="rounded-lg border border-emerald-100 bg-emerald-50/40 max-h-60 overflow-y-auto">
+              <ul id="committedListItems" class="divide-y divide-emerald-100/70 text-sm"></ul>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <p class="text-sm"><span class="text-slate-500">Fuera:</span> <span id="outCount" class="font-bold text-rose-700"></span></p>
+              <div class="relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none"></i>
+                <input id="outFilter" type="text" placeholder="Buscar por ID o título…" oninput="renderOutList()"
+                  class="w-56 max-w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs" />
+              </div>
+            </div>
+            <div class="rounded-lg border border-rose-100 bg-rose-50/40 max-h-60 overflow-y-auto">
+              <ul id="outListItems" class="divide-y divide-rose-100/70 text-sm"></ul>
+            </div>
+          </div>
+        </div>
+        <p class="text-xs text-slate-500" id="outByPriority"></p>
+      </div>
+      <div class="mt-5 pt-4 border-t border-slate-100 space-y-3">
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span>Utilización Dev — <span id="usedDev" class="font-bold"></span> / <span id="commitDev2"></span> h · saldo <span id="balDev" class="font-bold"></span> h</span>
+            <span id="utilDevPct" class="font-bold"></span>
+          </div>
+          <div class="h-2 bg-slate-100 rounded"><div id="utilDevBar" class="h-2 bg-indigo-500 rounded" style="width:0%"></div></div>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span>Utilización QA — <span id="usedQa" class="font-bold"></span> / <span id="commitQa2"></span> h · saldo <span id="balQa" class="font-bold"></span> h</span>
+            <span id="utilQaPct" class="font-bold"></span>
+          </div>
+          <div class="h-2 bg-slate-100 rounded"><div id="utilQaBar" class="h-2 bg-emerald-500 rounded" style="width:0%"></div></div>
+        </div>
+        <p class="text-xs text-slate-500" id="utilNote"></p>
+      </div>
+    </section>
+
+    <!-- Timeline de carriles -->
+    <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-3">
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3 mb-4">
+        <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">
+          <i class="fa-solid fa-timeline text-indigo-600 mr-1.5"></i> 6. Diagrama de Carriles por Miembro del Equipo
+          <span class="normal-case font-semibold text-[10px] text-slate-400 ml-1">· horas planificables</span>
+        </h2>
+        <div class="flex flex-wrap items-center gap-3 text-xs font-medium text-slate-500">
+          <span class="flex items-center gap-1.5"><span class="inline-block" style="width:12px;height:12px;background:#6366f1;border-radius:2px"></span> Dev</span>
+          <span class="flex items-center gap-1.5"><span class="inline-block" style="width:12px;height:12px;background:#f59e0b;border-radius:2px"></span> QA</span>
+          <span class="flex items-center gap-1.5"><span class="inline-block" style="width:12px;height:12px;background:#f43f5e;border-radius:2px"></span> Excede capacidad</span>
+          <span class="flex items-center gap-1.5"><span class="inline-block" style="width:12px;height:0;border-top:1px dashed #94a3b8"></span> Tope persona</span>
+        </div>
+      </div>
+      <div class="overflow-x-auto pb-2">
+        <div id="timelineContainer" class="min-w-[700px] relative pt-3">
+          <div id="timelineScale" class="relative h-5 border-b border-slate-300 text-xs font-mono text-slate-400 mb-3"></div>
+          <div id="resourceLanesContainer" class="space-y-2"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="text-center text-xs text-slate-400 py-6">
+    Crediviva · Planning de Sprint basado en Capacidad
+  </footer>
+
+<script>
+/** @typedef {{ name: string, daysOff: number, hoursOverride: number|null }} Person */
+/** @typedef {{ id: string, title: string, priority: 'alta'|'media'|'baja', dev: number, qa: number, carryOver?: boolean, status?: string }} Story */
+
+/**
+ * Board actual (screenshots Jira).
+ * Horas en 0 → completar estimación. Hint: Ready for QA / QA/STG suelen ser solo QA (Dev=0).
+ */
+const BOARD_ACTUAL = [
+  // —— QA/STG ——
+  { id: 'SCRUM-129', title: 'Ares - Validación de APC + generación de variables (Ingreso, Situación Laboral) y consulta a Risk Seal', priority: 'alta', status: 'QA/STG', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-623', title: '[Pago servicios] [Backend] - Cambios y fixes en textos, reimplementación de los errores mockeados y más', priority: 'media', status: 'QA/STG', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-594', title: '[App] Pago de Servicios - Bloquear a Clientes en Blacklist de Pagar Servicios', priority: 'alta', status: 'QA/STG', carryOver: true, dev: 0, qa: 0 },
+
+  // —— Ready for QA ——
+  { id: 'SCRUM-14', title: 'Mensaje de Error Claro y Descriptivo ante Fallo de Pago', priority: 'alta', status: 'Ready for QA', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-18', title: 'Nox - Escenarios de Errores', priority: 'alta', status: 'Ready for QA', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-420', title: '[Backoffice] - Duplicidad de Comercios en la configuración de tasas', priority: 'media', status: 'Ready for QA', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-425', title: '[Reportes] - Estandarización de canal, medio y origen de registro de pagos', priority: 'media', status: 'Ready for QA', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-138', title: 'Habilitar la sección "Usuarios" para los comercios', priority: 'media', status: 'Ready for QA', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-29', title: '[Backend] - Scoring de mantenimiento RD', priority: 'alta', status: 'Ready for QA', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-145', title: '[Backoffice] - Crear rol, departamento y sucursal por defecto al registrar un comercio', priority: 'media', status: 'Ready for QA', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-463', title: 'Nox - Estandarización flujo de pago', priority: 'alta', status: 'Ready for QA', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-712', title: '[APP] Pago de servicios - Ajustes en Pantallas de errores', priority: 'media', status: 'Ready for QA', carryOver: true, dev: 0, qa: 0 },
+
+  // —— QA DEV ——
+  { id: 'SCRUM-479', title: '[Backoffice] - Columna y filtro de Sucursal de Comercio en módulo Solicitudes', priority: 'media', status: 'QA DEV', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-314', title: '[Backoffice] Mostrar el tipo de Retanqueo que obtuvo el usuario', priority: 'media', status: 'QA DEV', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-478', title: '[Backoffice] - Simulador_CREDIVIVA: Simulación personalizada según segmento de riesgo', priority: 'media', status: 'QA DEV', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-15', title: 'Registro de Intentos y Resultados de Pago para Auditoría (BO)', priority: 'media', status: 'QA DEV', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-541', title: '[App] Onboarding WhatsApp - Selección de tipo de cliente e inicio de flujo por WhatsApp', priority: 'media', status: 'QA DEV', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-542', title: '[App] Onboarding WhatsApp - Reenviar OTP por correo', priority: 'media', status: 'QA DEV', carryOver: true, dev: 0, qa: 0 },
+
+  // —— En revisión ——
+  { id: 'SCRUM-548', title: '[App] Onboarding WhatsApp - Validar teléfono automático o manual', priority: 'alta', status: 'En revisión', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-543', title: '[App] Onboarding WhatsApp - Registrar aceptación de términos y condiciones', priority: 'alta', status: 'En revisión', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-544', title: '[App] Onboarding WhatsApp - Registrar tratamiento de datos personales', priority: 'alta', status: 'En revisión', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-545', title: '[App] Onboarding WhatsApp - Registrar autorización de consulta APC', priority: 'media', status: 'En revisión', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-687', title: '[App] [Técnico] Onboarding WhatsApp - Invocación Lambda directa', priority: 'media', status: 'En revisión', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-483', title: '[Análisis] [Backend] Creación de usuarios - Revisar LAMBDA para interacciones post llamadas', priority: 'media', status: 'En revisión', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-547', title: '[App] Onboarding WhatsApp - Validar política de contraseña', priority: 'media', status: 'En revisión', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-686', title: '[App] [Técnico] Onboarding WhatsApp - Resolución multi-país por ambiente (Mongo, API Gateway, Lambda)', priority: 'media', status: 'En revisión', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-685', title: '[App] [Técnico] Onboarding WhatsApp - Manejo de sesión para endpoints privados', priority: 'media', status: 'En revisión', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-546', title: '[App] Onboarding WhatsApp - Crear contraseña e identificar canal', priority: 'media', status: 'En revisión', carryOver: true, dev: 0, qa: 0 },
+
+  // —— En curso ——
+  { id: 'SCRUM-707', title: '[App] [Técnico] - Onboarding WhatsApp - Instalación y configuración de librerías', priority: 'media', status: 'En curso', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-576', title: '[Backoffice] Creación de Reporte 4-44 Matriz de Riesgo', priority: 'media', status: 'En curso', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-394', title: 'REUNIONES', priority: 'alta', status: 'En curso', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-393', title: 'SOPORTE', priority: 'alta', status: 'En curso', carryOver: true, dev: 0, qa: 0 },
+
+  // —— Prioritized (sprint) ——
+  { id: 'SCRUM-624', title: 'QA - Regresión release 3.8.0', priority: 'alta', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-549', title: '[App] Onboarding WhatsApp - Validar KYC con Jumio', priority: 'alta', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-550', title: '[App] Onboarding WhatsApp - Validar KYC con Veriff', priority: 'alta', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-551', title: '[App] Onboarding WhatsApp - Cambiar automáticamente de Jumio a Veriff', priority: 'alta', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-552', title: '[App] Onboarding WhatsApp - Gestionar selección automática de proveedor KYC', priority: 'alta', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-553', title: '[App] Onboarding WhatsApp - Identificar cliente Luz Verde y derivar a App', priority: 'alta', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-554', title: '[App] Onboarding WhatsApp - Controlar bloqueos, reintentos KYC y resumen', priority: 'alta', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-555', title: '[App] Onboarding WhatsApp - Solicitar y validar ingreso mensual', priority: 'alta', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-556', title: '[App] Onboarding WhatsApp - Ejecutar scoring, RiskSeal e identificar canal', priority: 'alta', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-557', title: '[App] Onboarding WhatsApp - Seleccionar y validar monto solicitado', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-558', title: '[App] Onboarding WhatsApp - Seleccionar comercios favoritos', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-702', title: '[Backoffice] Pago de Servicios - Habilitar sección en el backoffice para poder realizar reintentos de Pago', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-704', title: '[Backoffice] - Bloquear el botón de excepcionar solicitudes hasta que esta esté completa con status APPROVED o REJECTED', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-684', title: '[Veriff] Guardar información que nos envía Veriff', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-667', title: '[App] Redondear a (.00) Las Cuotas de los Creditos en RD', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-668', title: '[Backoffice] Agregar Columna de Sucursal - Modulo de Creditos', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-690', title: '[REPORTES] - Ticket reporte NPL', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-311', title: '[Backoffice][App] - Validation de Referencias - Score de Comportamiento', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-669', title: '[Backoffice] Habilitar Vista de Pagos - ROL Gerentes (Usuarios)', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-698', title: '[Deuda Técnica] - Lambda - Mejoras', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-699', title: '[Deuda Técnica] - Barrido de Error de Desembolso Mifos & Mongo DB', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-672', title: '[IT] Carta Saldo - 90 días', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-691', title: '[App] Fix de error de registro en país', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-572', title: '[Backoffice] Solicitar Sucursal al dar click en otorgar crédito', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-710', title: '[Backoffice] - Modificación de formato de fechas', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-488', title: '[App] Mejora de visibilidad del botón de consentimiento en Iniciar Verificación', priority: 'baja', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-720', title: '[Integración] Actualización de API de Veriff', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+
+  // —— Backlog ——
+  { id: 'SCRUM-632', title: 'Reunirse con mario', priority: 'baja', status: 'Backlog', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-711', title: '[Contratos] Actualización de contrato RD', priority: 'media', status: 'Backlog', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-713', title: '[BlackList] - Eliminar registro de la black list', priority: 'media', status: 'Backlog', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-718', title: '[Integración] TransUnión - Socialización', priority: 'media', status: 'Backlog', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-721', title: '[Pago de servicios] Error en las redirecciones en el flujo de pago', priority: 'media', status: 'Backlog', carryOver: false, dev: 0, qa: 0 },
+];
+
+const PDF_EXAMPLE = [
+  { id: 'US 1', title: 'Historia ejemplo 1', priority: 'alta', dev: 36, qa: 24 },
+  { id: 'US 2', title: 'Historia ejemplo 2', priority: 'alta', dev: 24, qa: 10 },
+  { id: 'US 3', title: 'Historia ejemplo 3', priority: 'alta', dev: 8, qa: 12 },
+  { id: 'US 4', title: 'Historia ejemplo 4', priority: 'media', dev: 48, qa: 36 },
+  { id: 'US 5', title: 'Historia ejemplo 5', priority: 'media', dev: 20, qa: 8 },
+  { id: 'US 6', title: 'Historia ejemplo 6', priority: 'baja', dev: 18, qa: 28 },
+  { id: 'US 7', title: 'Historia ejemplo 7', priority: 'media', dev: 2, qa: 5 },
+  { id: 'US 8', title: 'Historia ejemplo 8', priority: 'media', dev: 10, qa: 5 },
+  { id: 'US 9', title: 'Historia ejemplo 9', priority: 'baja', dev: 18, qa: 16 },
+  { id: 'US 10', title: 'Historia ejemplo 10', priority: 'baja', dev: 25, qa: 8 },
+  { id: 'US 11', title: 'Historia ejemplo 11 (solo QA)', priority: 'baja', dev: 0, qa: 48 },
+];
+
+/** @type {Story[]} */
+let stories = [];
+/** @type {Person[]} */
+let devPeople = [];
+/** @type {Person[]} */
+let qaPeople = [];
+
+const JIRA_BOTS = ['Jira Coding Agent', 'Jira Delivery Agent', 'Xray Test Plan Summarizer'];
+const JIRA_DEFAULT_DEV = ['Jeremy David Leon Fuentes', 'Albin Ramirez', 'Eduard Acevedo'];
+const JIRA_DEFAULT_QA = ['Eliana Rodriguez', 'estefania.rodriguez'];
+
+function isPlaceholderPeople(list) {
+  return list.length > 0 && list.every(p =>
+    !p.accountId && /^(Dev|QA)\s?\d+$/i.test(p.name) && !(Number(p.daysOff) || 0) && (p.hoursOverride == null || p.hoursOverride === ''));
+}
+
+function resolveMember(name) {
+  const m = (jiraMembersCache || []).find(x => x.displayName === name);
+  return m
+    ? { name: m.displayName, accountId: m.accountId, daysOff: 0, hoursOverride: null }
+    : { name, accountId: null, daysOff: 0, hoursOverride: null };
+}
+
+function realDefaultPeople() {
+  devPeople = JIRA_DEFAULT_DEV.map(resolveMember);
+  qaPeople = JIRA_DEFAULT_QA.map(resolveMember);
+}
+
+function scheduleAccountIdAttach(devSnap, qaSnap) {
+  if (jiraMembersCache) return;
+  fetchJiraMembers().then(() => {
+    const unchanged = devSnap.length === devPeople.length && devSnap.every((p, i) => p.name === devPeople[i].name)
+      && qaSnap.length === qaPeople.length && qaSnap.every((p, i) => p.name === qaPeople[i].name);
+    if (unchanged) { realDefaultPeople(); recalc(); if (activeSessionId) saveNow(); }
+  }).catch(() => {});
+}
+
+function migratePlaceholderTeam() {
+  if (!isPlaceholderPeople(devPeople) && !isPlaceholderPeople(qaPeople)) return;
+  realDefaultPeople();
+  scheduleAccountIdAttach(devPeople.slice(), qaPeople.slice());
+  recalc();
+}
+
+/** @type {Array<{accountId:string,displayName:string,email:string,active:boolean}>|null} */
+let jiraMembersCache = null;
+let addPersonRole = 'dev';
+
+async function fetchJiraMembers(force) {
+  if (jiraMembersCache && !force) return jiraMembersCache;
+  const res = await fetch(`${PROXY_BASE}/api/jira/members`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || res.statusText);
+  }
+  jiraMembersCache = await res.json();
+  return jiraMembersCache;
+}
+
+function visibleMembers() {
+  return (jiraMembersCache || []).filter(m => !JIRA_BOTS.includes(m.displayName));
+}
+
+function inTeam(accountId) {
+  return devPeople.concat(qaPeople).some(p => p.accountId && p.accountId === accountId);
+}
+
+/** @type {Array<{id:string,title:string,priority:string}>} */
+let outStoriesCache = [];
+
+/** @type {Array<{id:string,title:string,priority:string,dev:number,qa:number}>} */
+let committedStoriesCache = [];
+
+function n(id) {
+  return Number(document.getElementById(id).value) || 0;
+}
+
+function priorityWeight(p) {
+  if (p === 'alta') return n('weightAlta') || 3;
+  if (p === 'media') return n('weightMedia') || 2;
+  return n('weightBaja') || 1;
+}
+
+function priorityLabel(p) {
+  return p === 'alta' ? 'Alta' : p === 'media' ? 'Media' : 'Baja';
+}
+
+function priorityClass(p) {
+  if (p === 'alta') return 'bg-rose-100 text-rose-800 border-rose-200';
+  if (p === 'media') return 'bg-amber-100 text-amber-800 border-amber-200';
+  return 'bg-slate-100 text-slate-700 border-slate-200';
+}
+
+function baseDays() {
+  return Math.max(0, n('sprintWorkDays') - n('holidays'));
+}
+
+function personHours(p) {
+  if (p.hoursOverride != null && p.hoursOverride !== '' && !Number.isNaN(Number(p.hoursOverride))) {
+    return Math.max(0, Number(p.hoursOverride));
+  }
+  const days = Math.max(0, baseDays() - (Number(p.daysOff) || 0));
+  return Math.round(days * n('hoursPerDay') * 100) / 100;
+}
+
+function personCommitted(p) {
+  return Math.max(0, Math.round(personHours(p) * (1 - n('opsReservePct') / 100 - n('ciReservePct') / 100) * 100) / 100);
+}
+
+function capacity() {
+  const devCap = Math.round(devPeople.reduce((a, p) => a + personHours(p), 0) * 100) / 100;
+  const qaCap = Math.round(qaPeople.reduce((a, p) => a + personHours(p), 0) * 100) / 100;
+  const opsPct = n('opsReservePct') / 100;
+  const ciPct = n('ciReservePct') / 100;
+  const opsDev = Math.round(devCap * opsPct);
+  const opsQa = Math.round(qaCap * opsPct);
+  const ciDev = Math.round(devCap * ciPct);
+  const ciQa = Math.round(qaCap * ciPct);
+  return {
+    devCap, qaCap, opsDev, opsQa, ciDev, ciQa,
+    commitDev: Math.max(0, Math.round((devCap - opsDev - ciDev) * 100) / 100),
+    commitQa: Math.max(0, Math.round((qaCap - opsQa - ciQa) * 100) / 100),
+  };
+}
+
+/** Ordena por peso desc; empate → orden original de la lista. */
+function sortedForCommit() {
+  return stories
+    .map((s, originalIndex) => ({ ...s, originalIndex, weight: priorityWeight(s.priority || 'media') }))
+    .sort((a, b) => {
+      if (b.weight !== a.weight) return b.weight - a.weight;
+      return a.originalIndex - b.originalIndex;
+    });
+}
+
+function planStories(commitDev, commitQa) {
+  let balDev = commitDev;
+  let balQa = commitQa;
+  const devLoad = devPeople.map(() => 0);
+  const qaLoad = qaPeople.map(() => 0);
+  const planned = sortedForCommit().map((s, i) => {
+    const maxDev = balDev;
+    const maxQa = balQa;
+    const dev = Number(s.dev) || 0;
+    const qa = Number(s.qa) || 0;
+    const hasEstimate = dev > 0 || qa > 0;
+    const okDev = balDev >= dev;
+    const okQa = balQa >= qa;
+    const entra = hasEstimate && okDev && okQa;
+    let reason = '';
+    let devResource = -1;
+    let qaResource = -1;
+    let devStart = 0, devFinish = 0, qaStart = 0, qaFinish = 0;
+    if (entra) {
+      if (devLoad.length) {
+        const fd = forcedIndex(s, 'forcedDev');
+        devResource = fd === 'auto' ? devLoad.indexOf(Math.min(...devLoad)) : Number(fd);
+        devStart = devLoad[devResource];
+        devFinish = Math.round((devStart + dev) * 100) / 100;
+        devLoad[devResource] = devFinish;
+      }
+      balDev = Math.round((balDev - dev) * 100) / 100;
+      balQa = Math.round((balQa - qa) * 100) / 100;
+      if (dev > 0 && qa > 0) reason = 'Dev+QA';
+      else if (dev > 0) reason = 'Solo Dev';
+      else reason = 'Solo QA';
+    } else if (!hasEstimate) {
+      reason = 'Sin horas';
+    } else if (!okDev && !okQa) reason = 'Falta Dev y QA';
+    else if (!okDev) reason = 'Falta Dev';
+    else reason = 'Falta QA';
+    return { ...s, index: i + 1, entra, balDev, balQa, maxDev, maxQa, dev, qa, reason, devResource, qaResource, devStart, devFinish, qaStart, qaFinish };
+  });
+
+  const byOriginal = new Map(planned.map(p => [p.originalIndex, p]));
+  const committedWithQa = planned.filter(p => p.entra && p.qa > 0)
+    .sort((a, b) => (a.devFinish - b.devFinish) || (a.originalIndex - b.originalIndex));
+  const qaQueue = qaPeople.map(() => 0);
+  committedWithQa.forEach(p => {
+    const fq = forcedIndex(p, 'forcedQa');
+    let qr;
+    if (fq !== 'auto') {
+      qr = Number(fq);
+    } else {
+      let bestQ = 0;
+      let bestF = Infinity;
+      qaPeople.forEach((_, qi) => {
+        const fin = Math.max(p.devFinish, qaQueue[qi]) + p.qa;
+        if (fin < bestF || (fin === bestF && qaQueue[qi] < qaQueue[bestQ])) {
+          bestF = fin;
+          bestQ = qi;
+        }
+      });
+      qr = bestQ;
+    }
+    const start = Math.max(p.devFinish, qaQueue[qr]);
+    const target = byOriginal.get(p.originalIndex);
+    target.qaResource = qr;
+    target.qaStart = Math.round(start * 100) / 100;
+    target.qaFinish = Math.round((start + p.qa) * 100) / 100;
+    qaQueue[qr] = target.qaFinish;
+  });
+  return planned;
+}
+
+function escapeAttr(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+function renderPeople(role) {
+  const list = role === 'dev' ? devPeople : qaPeople;
+  const body = document.getElementById(role === 'dev' ? 'devPeopleBody' : 'qaPeopleBody');
+  body.innerHTML = list.map((p, i) => {
+    const auto = personHours({ ...p, hoursOverride: null });
+    const hrs = personHours(p);
+    const overridden = p.hoursOverride != null && p.hoursOverride !== '';
+    return `
+      <tr class="border-t border-slate-100">
+        <td class="py-1.5 px-2">
+          ${p.accountId
+            ? `<span class="block w-full text-xs font-medium text-slate-700 truncate" title="${escapeAttr(p.name)} · cuenta Jira">${escapeAttr(p.name)}</span>`
+            : `<input value="${escapeAttr(p.name)}" onchange="updatePerson('${role}',${i},'name',this.value)"
+                class="w-full bg-transparent border-b border-slate-200 text-xs font-medium focus:outline-none focus:border-indigo-400" />`}
+        </td>
+        <td class="py-1.5 px-2">
+          <input type="number" min="0" step="0.5" value="${p.daysOff || 0}"
+            onchange="updatePerson('${role}',${i},'daysOff',this.value)"
+            onblur="updatePerson('${role}',${i},'daysOff',this.value)"
+            class="w-20 bg-white border border-slate-300 rounded px-2 py-1 text-sm font-bold" />
+        </td>
+        <td class="py-1.5 px-2">
+          <input type="number" min="0" step="0.5" value="${hrs}"
+            onchange="updatePerson('${role}',${i},'hoursOverride',this.value)"
+            onblur="updatePerson('${role}',${i},'hoursOverride',this.value)"
+            class="w-20 bg-white border rounded px-2 py-1 text-sm font-bold ${overridden ? 'border-amber-400' : 'border-slate-300'}"
+            title="Auto: ${auto}h" />
+        </td>
+        <td class="py-1.5 px-2 text-center">
+          <button onclick="removePerson('${role}',${i})" class="text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash text-xs"></i></button>
+        </td>
+      </tr>`;
+  }).join('') || `<tr><td colspan="4" class="py-3 px-2 text-xs text-slate-400">Sin personas</td></tr>`;
+}
+
+function updatePerson(role, i, key, value) {
+  const list = role === 'dev' ? devPeople : qaPeople;
+  if (key === 'daysOff') {
+    const next = Number(value) || 0;
+    if (list[i].daysOff === next && list[i].hoursOverride == null) return;
+    list[i].daysOff = next;
+    list[i].hoursOverride = null;
+  } else if (key === 'hoursOverride') {
+    const next = value === '' ? null : Number(value);
+    if (list[i].hoursOverride === next) return;
+    list[i].hoursOverride = next;
+  } else {
+    if (list[i][key] === value) return;
+    list[i][key] = value;
+  }
+  recalc();
+}
+
+function addPerson(role) {
+  addPersonRole = role;
+  document.getElementById('addPersonRoleLabel').textContent = role === 'dev' ? 'Dev' : 'QA';
+  try {
+    fetchJiraMembers().then(() => {
+      const vis = visibleMembers();
+      const used = new Set(devPeople.concat(qaPeople).map(p => p.accountId).filter(Boolean));
+      const opts = vis.filter(m => !used.has(m.accountId))
+        .map(m => `<option value="${escapeAttr(m.accountId)}">${escapeAttr(m.displayName)}</option>`)
+        .join('');
+      const sel = document.getElementById('addPersonSelect');
+      sel.innerHTML = opts
+        ? `<option value="">— Selecciona —</option>${opts}<option value="manual">✍️ Escribir manualmente…</option>`
+        : `<option value="manual">✍️ Escribir manualmente…</option>`;
+      onAddPersonSelect(sel.value);
+      document.getElementById('addPersonManualName').value = '';
+      document.getElementById('addPersonModal').classList.remove('hidden');
+    }).catch(() => addPersonManual());
+  } catch (e) {
+    addPersonManual();
+  }
+}
+
+function onAddPersonSelect(val) {
+  document.getElementById('addPersonManualWrap').classList.toggle('hidden', val !== 'manual');
+}
+
+function applyAddPerson() {
+  const sel = document.getElementById('addPersonSelect');
+  const val = sel.value;
+  const manualName = document.getElementById('addPersonManualName').value.trim();
+  const list = addPersonRole === 'dev' ? devPeople : qaPeople;
+  if (val === 'manual') {
+    if (!manualName) { alert('Escribe el nombre de la persona.'); return; }
+    list.push({ name: manualName, accountId: null, daysOff: 0, hoursOverride: null });
+  } else if (val) {
+    const m = (jiraMembersCache || []).find(x => x.accountId === val);
+    if (!m) return;
+    list.push({ name: m.displayName, accountId: m.accountId, daysOff: 0, hoursOverride: null });
+  } else {
+    alert('Selecciona un usuario de Jira o escribe uno manualmente.');
+    return;
+  }
+  document.getElementById('addPersonModal').classList.add('hidden');
+  recalc();
+}
+
+function closeAddPersonModal() {
+  document.getElementById('addPersonModal').classList.add('hidden');
+}
+
+function addPersonManual() {
+  const sel = document.getElementById('addPersonSelect');
+  sel.innerHTML = `<option value="manual">✍️ Escribir manualmente…</option>`;
+  onAddPersonSelect('manual');
+  document.getElementById('addPersonManualName').value = '';
+  document.getElementById('addPersonModal').classList.remove('hidden');
+}
+
+async function openTeamModal() {
+  try {
+    const members = await fetchJiraMembers();
+    const vis = visibleMembers();
+    document.getElementById('teamModalStatus').textContent =
+      `${vis.length} usuarios de Jira del proyecto SCRUM · bots de automatización ocultos`;
+    const build = (checksId, defaults) => {
+      document.getElementById(checksId).innerHTML = vis.map(m => {
+        const checked = defaults.includes(m.displayName) ? ' checked' : '';
+        return `<label class="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-50 rounded px-1">
+          <input type="checkbox" value="${escapeAttr(m.accountId)}" data-name="${escapeAttr(m.displayName)}"${checked}
+            class="jira-check rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+          <span>${escapeAttr(m.displayName)}</span>
+        </label>`;
+      }).join('') || '<p class="text-xs text-slate-400">Sin usuarios</p>';
+    };
+    build('teamDevChecks', JIRA_DEFAULT_DEV);
+    build('teamQaChecks', JIRA_DEFAULT_QA);
+    document.getElementById('teamModal').classList.remove('hidden');
+  } catch (e) {
+    alert('No se pudo cargar el equipo desde Jira.\n' + (e.message || e) +
+      '\n\nRevisa que el proxy esté corriendo: node proxy.mjs');
+  }
+}
+
+function closeTeamModal() {
+  document.getElementById('teamModal').classList.add('hidden');
+}
+
+function applyTeamModal() {
+  const toPeople = checksId => [...document.querySelectorAll(`#${checksId} input:checked`)].map(cb => {
+    const m = (jiraMembersCache || []).find(x => x.accountId === cb.value) || {};
+    return { name: m.displayName || cb.dataset.name, accountId: m.accountId || null, daysOff: 0, hoursOverride: null };
+  });
+  devPeople = toPeople('teamDevChecks');
+  qaPeople = toPeople('teamQaChecks');
+  if (!devPeople.length && !qaPeople.length) {
+    alert('Selecciona al menos un Dev o un QA.');
+    return;
+  }
+  closeTeamModal();
+  recalc();
+  alert(`Equipo aplicado: ${devPeople.length} Devs · ${qaPeople.length} QAs`);
+}
+
+function removePerson(role, i) {
+  (role === 'dev' ? devPeople : qaPeople).splice(i, 1);
+  recalc();
+}
+
+function renderStories(planned) {
+  document.getElementById('storiesBody').innerHTML = planned.map((s) => {
+    const oi = s.originalIndex;
+    const src = stories[oi] || s;
+    const rawDev = src.dev;
+    const rawQa = src.qa;
+    const nDev = Number(rawDev) || 0;
+    const nQa = Number(rawQa) || 0;
+    return `
+    <tr class="border-b border-slate-100 ${s.entra ? 'bg-emerald-50/40' : 'bg-rose-50/30'}">
+      <td class="py-2 px-3 text-center text-slate-500 font-medium align-middle">${s.index}</td>
+      <td class="py-2 px-3 align-middle min-w-[28rem]">
+        <div class="flex flex-wrap items-center gap-1.5 mb-1.5">
+          <input value="${escapeAttr(s.id)}" onchange="updateStory(${oi},'id',this.value)"
+            class="w-36 bg-white border border-slate-300 rounded px-2 py-1 text-xs font-bold text-indigo-800" />
+          ${s.carryOver ? `<span class="text-[10px] font-bold uppercase tracking-wide bg-amber-100 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded">WIP</span>` : `<span class="text-[10px] font-bold uppercase tracking-wide bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded">Nuevo</span>`}
+          ${s.status ? `<span class="text-[10px] text-slate-500">${escapeAttr(s.status)}</span>` : ''}
+          ${isJiraKey(s.id) ? `<a href="${JIRA_SITE}/browse/${encodeURIComponent(s.id)}" target="_blank" rel="noopener" title="Abrir ${escapeAttr(s.id)} en Jira" class="inline-flex items-center justify-center w-6 h-6 rounded text-[#0052CC] hover:bg-sky-100"><i class="fa-brands fa-jira text-[13px]"></i></a>` : ''}
+          ${s.assignee ? `<span class="text-[10px] text-slate-400"><i class="fa-solid fa-user mr-0.5"></i>Jira: ${escapeAttr(s.assignee)}</span>` : ''}
+        </div>
+        <textarea rows="2" onchange="updateStory(${oi},'title',this.value)"
+          class="w-full bg-white border border-slate-300 rounded px-2 py-1.5 text-sm text-slate-800 leading-snug resize-y">${escapeAttr(s.title)}</textarea>
+      </td>
+      <td class="py-2 px-3">
+        <select onchange="updateStory(${oi},'priority',this.value)" class="w-full border rounded px-2 py-1 text-xs font-bold ${priorityClass(s.priority)}">
+          <option value="alta" ${s.priority==='alta'?'selected':''}>Alta</option>
+          <option value="media" ${s.priority==='media'?'selected':''}>Media</option>
+          <option value="baja" ${s.priority==='baja'?'selected':''}>Baja</option>
+        </select>
+      </td>
+      <td class="py-2 px-3 text-center font-mono text-xs font-bold">${s.weight}</td>
+      <td class="py-2 px-3 align-middle">
+        <input type="number" min="0" step="0.5" value="${rawDev == null ? '' : rawDev}"
+          onchange="updateStory(${oi},'dev',this.value)"
+          onblur="updateStory(${oi},'dev',this.value)"
+          class="w-20 bg-white border border-slate-300 rounded px-2 py-1 text-sm font-bold" />
+        <div class="text-[10px] ${nDev > s.maxDev ? 'text-rose-500 font-bold' : 'text-slate-400'}">${nDev > s.maxDev ? '⚠ sobrepasa ' + (nDev - s.maxDev) + ' h' : 'disponible ' + s.maxDev + ' h'}</div>
+      </td>
+      <td class="py-2 px-3 align-middle">
+        <input type="number" min="0" step="0.5" value="${rawQa == null ? '' : rawQa}"
+          onchange="updateStory(${oi},'qa',this.value)"
+          onblur="updateStory(${oi},'qa',this.value)"
+          class="w-20 bg-white border border-slate-300 rounded px-2 py-1 text-sm font-bold" />
+        <div class="text-[10px] ${nQa > s.maxQa ? 'text-rose-500 font-bold' : 'text-slate-400'}">${nQa > s.maxQa ? '⚠ sobrepasa ' + (nQa - s.maxQa) + ' h' : 'disponible ' + s.maxQa + ' h'}</div>
+      </td>
+      <td class="py-2 px-3 align-middle">${resourceSelect(oi, 'forcedDev', forcedIndex(s, 'forcedDev'))}</td>
+      <td class="py-2 px-3 align-middle">${resourceSelect(oi, 'forcedQa', forcedIndex(s, 'forcedQa'))}</td>
+      <td class="py-2 px-3 text-center align-middle">
+        <span class="inline-flex flex-col items-center gap-0.5 text-xs font-bold ${s.entra ? 'text-emerald-700' : 'text-rose-700'}">
+          <span><i class="fa-solid ${s.entra ? 'fa-check' : 'fa-xmark'}"></i> ${s.entra ? 'Sí' : 'No'}</span>
+          <span class="text-[10px] font-medium ${s.entra ? 'text-emerald-600' : 'text-rose-500'}">${escapeAttr(s.reason)}</span>
+        </span>
+      </td>
+      <td class="py-2 px-3 font-mono text-xs ${s.entra ? 'text-slate-700' : 'text-slate-400'}">${s.balDev}</td>
+      <td class="py-2 px-3 font-mono text-xs ${s.entra ? 'text-slate-700' : 'text-slate-400'}">${s.balQa}</td>
+      <td class="py-2 px-3 text-center">
+        <button onclick="removeStory(${oi})" class="text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function updateStory(i, key, value) {
+  if (key === 'dev' || key === 'qa') {
+    const raw = String(value === null || value === undefined ? '' : value).trim();
+    const next = raw === '' ? null : (Math.max(0, Number(raw)) || 0);
+    if (stories[i][key] === next) return; // evita re-render si no cambió (p.ej. blur duplicado)
+    stories[i][key] = next;
+    if (key === 'dev') stories[i].devDirty = true;
+    else stories[i].qaDirty = true;
+    scheduleJiraHoursSave(i);
+  } else if (key === 'forcedDev' || key === 'forcedQa') {
+    const list = key === 'forcedDev' ? devPeople : qaPeople;
+    let next = 'auto';
+    if (value !== 'auto') {
+      const idx = Number(value);
+      next = Number.isInteger(idx) && idx >= 0 && idx < list.length ? String(idx) : 'auto';
+    }
+    if (stories[i][key] === next) return;
+    stories[i][key] = next;
+  } else {
+    if (stories[i][key] === value) return;
+    stories[i][key] = value;
+  }
+  recalc();
+}
+
+function addStory() {
+  stories.push({ id: `US ${stories.length + 1}`, title: 'Nueva historia', priority: 'media', dev: 0, qa: 0, forcedDev: 'auto', forcedQa: 'auto' });
+  recalc();
+}
+
+function removeStory(i) {
+  stories.splice(i, 1);
+  recalc();
+}
+
+/* — Asignación y Timeline — */
+
+const LANE_COLORS = ['#6366f1','#0ea5e9','#14b8a6','#10b981','#8b5cf6','#a855f7','#f59e0b','#ea580c'];
+
+function forcedIndex(s, key) {
+  const list = key === 'forcedDev' ? devPeople : qaPeople;
+  const v = s[key];
+  if (v === undefined || v === null || v === 'auto' || v === '') return 'auto';
+  const idx = Number(v);
+  return Number.isInteger(idx) && idx >= 0 && idx < list.length ? String(idx) : 'auto';
+}
+
+function resourceSelect(oi, key, current) {
+  const list = key === 'forcedDev' ? devPeople : qaPeople;
+  let h = `<select onchange="updateStory(${oi},'${key}',this.value)" class="w-32 bg-white border border-slate-300 rounded px-2 py-1 text-xs font-bold text-slate-700">`;
+  h += `<option value="auto"${current === 'auto' ? ' selected' : ''}>⚡ Auto</option>`;
+  list.forEach((p, pi) => {
+    h += `<option value="${pi}"${current === String(pi) ? ' selected' : ''}>${escapeAttr(p.name)}</option>`;
+  });
+  h += '</select>';
+  return h;
+}
+
+function timelineHeader(name, icon, color) {
+  const el = document.createElement('div');
+  el.style.cssText = 'margin:12px 0 6px; white-space:nowrap;';
+  el.innerHTML = `<span class="text-xs font-bold uppercase" style="color:#475569"><i class="fa-solid ${icon}" style="color:${color}"></i> ${name}</span>`;
+  return el;
+}
+
+function timelineLane(name, capLabel, items, isDev, cap, horizon, riskSet) {
+  const lane = document.createElement('div');
+  lane.style.cssText = 'position:relative;height:38px;background:#f1f5f9;border-radius:6px;border:1px solid #cbd5e1;margin-bottom:6px;display:flex;align-items:center;';
+  const label = document.createElement('div');
+  label.style.cssText = 'width:140px;padding-left:10px;font-size:11px;font-weight:700;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-right:1px solid #cbd5e1;z-index:15;background:#e2e8f0;height:100%;display:flex;align-items:center;gap:6px;';
+  label.innerHTML = `<i class="fa-solid ${isDev ? 'fa-user' : 'fa-user-shield'}" style="color:${isDev ? '#4f46e5' : '#d97706'}"></i><span style="overflow:hidden;text-overflow:ellipsis">${escapeAttr(name)}</span><span class="ml-auto pr-2 font-semibold" style="color:#64748b;font-size:10px">${capLabel}</span>`;
+  lane.appendChild(label);
+  const track = document.createElement('div');
+  track.style.cssText = 'position:relative;flex-grow:1;height:100%;';
+  if (cap > 0) {
+    const pos = (cap / horizon) * 100;
+    const capLine = document.createElement('div');
+    capLine.style.cssText = `position:absolute;top:0;bottom:0;left:${pos}%;z-index:11;pointer-events:none;`;
+    const dash = document.createElement('div');
+    dash.style.cssText = 'position:absolute;top:0;bottom:0;left:0;border-left:2px dashed #f43f5e;';
+    capLine.appendChild(dash);
+    const lbl = document.createElement('div');
+    lbl.style.cssText = `position:absolute;top:-16px;${pos > 90 ? 'left:auto;right:4px' : 'left:4px'};background:#be123c;color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:4px;line-height:1.3;z-index:14;opacity:0;transition:opacity .15s ease;`;
+    lbl.textContent = `límite ${cap}h`;
+    capLine.appendChild(lbl);
+    track.appendChild(capLine);
+    lane.addEventListener('mouseenter', () => { lbl.style.opacity = '1'; });
+    lane.addEventListener('mouseleave', () => { lbl.style.opacity = '0'; });
+  }
+  items.forEach(s => {
+    const start = isDev ? s.devStart : s.qaStart;
+    const dur = isDev ? s.dev : s.qa;
+    const finish = isDev ? s.devFinish : s.qaFinish;
+    const over = finish > cap;
+    const risk = !!(riskSet && riskSet.has(s.originalIndex));
+    const leftPct = (start / horizon) * 100;
+    let widthPct = Math.max(0.5, (dur / horizon) * 100);
+    if (leftPct + widthPct > 100) widthPct = Math.max(0.5, 100 - leftPct);
+    const base = LANE_COLORS[s.originalIndex % LANE_COLORS.length];
+    let bg = base;
+    if (risk) bg = `repeating-linear-gradient(45deg, rgba(255,255,255,0.16) 0 10px, rgba(0,0,0,0.10) 10px 20px), ${base}`;
+    const bar = document.createElement('div');
+    bar.title = `${s.id} — ${name} (${start}h → ${finish}h)${over ? ' · La cola supera la capacidad de la persona en esta distribución' : ''}${risk && !over ? ' · Comprometida, pero su contraparte Dev/QA desborda por el offset de la ventana' : ''}`;
+    let css = `position:absolute;top:4px;height:28px;border-radius:4px;background:${bg};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;padding:0 4px;overflow:hidden;white-space:nowrap;left:${leftPct}%;width:${widthPct}%;z-index:10;`;
+    if (over) css += 'clip-path:polygon(0 0, calc(100% - 6px) 0, 100% 3px, calc(100% - 6px) 8px, 100% 12px, calc(100% - 6px) 16px, 100% 21px, calc(100% - 6px) 26px, 100% 28px, 0 28px);';
+    bar.style.cssText = css;
+    bar.innerHTML = `<span>${escapeAttr(s.id)}${over ? ' ⚠' : ''}</span>`;
+    track.appendChild(bar);
+  });
+  lane.appendChild(track);
+  return lane;
+}
+
+function renderTimeline(planned) {
+  const inStories = planned.filter(s => s.entra);
+  const devCaps = devPeople.map(p => personCommitted(p));
+  const qaCaps = qaPeople.map(p => personCommitted(p));
+  const horizon = Math.max(1, ...devCaps, ...qaCaps);
+  const scale = document.getElementById('timelineScale');
+  scale.innerHTML = `<span class="absolute left-0 -top-1">0h</span><span class="absolute -top-1" style="left:50%;transform:translateX(-50%)">${Math.round(horizon / 2)}h</span><span class="absolute right-0 -top-1">${horizon}h</span>`;
+  const container = document.getElementById('resourceLanesContainer');
+  container.innerHTML = '';
+  const riskSet = new Set();
+  inStories.forEach(s => {
+    const devOver = s.devResource >= 0 && s.dev > 0 && s.devFinish > devCaps[s.devResource];
+    const qaOver = s.qaResource >= 0 && s.qa > 0 && s.qaFinish > qaCaps[s.qaResource];
+    if (devOver || qaOver) riskSet.add(s.originalIndex);
+  });
+  container.appendChild(timelineHeader('Desarrollo', 'fa-code', '#4f46e5'));
+  devPeople.forEach((p, i) => {
+    const items = inStories.filter(s => s.devResource === i && s.dev > 0);
+    const used = Math.round(items.reduce((a, s) => a + s.dev, 0) * 100) / 100;
+    container.appendChild(timelineLane(p.name, `${used}/${devCaps[i]}h`, items, true, devCaps[i], horizon, riskSet));
+  });
+  container.appendChild(timelineHeader('QA (Pruebas)', 'fa-vial', '#d97706'));
+  qaPeople.forEach((p, i) => {
+    const items = inStories.filter(s => s.qaResource === i && s.qa > 0);
+    const used = Math.round(items.reduce((a, s) => a + s.qa, 0) * 100) / 100;
+    container.appendChild(timelineLane(p.name, `${used}/${qaCaps[i]}h`, items, false, qaCaps[i], horizon, riskSet));
+  });
+  if (!inStories.length) {
+    const hint = document.createElement('p');
+    hint.className = 'text-xs text-slate-400 mt-2';
+    hint.textContent = 'Sin historias comprometidas todavía — ajusta horas o capacidad para llenar los carriles.';
+    container.appendChild(hint);
+  }
+}
+
+function setText(id, v) { document.getElementById(id).textContent = v; }
+
+function renderCommittedList() {
+  const input = document.getElementById('committedFilter');
+  const q = (input ? input.value : '').toLowerCase().trim();
+  const matches = !q ? committedStoriesCache : committedStoriesCache.filter(s =>
+    s.id.toLowerCase().includes(q) || s.title.toLowerCase().includes(q));
+  const countEl = document.getElementById('committedCount');
+  const ul = document.getElementById('committedListItems');
+  if (countEl) countEl.textContent = `${committedStoriesCache.length}`;
+  if (!ul) return;
+  if (!committedStoriesCache.length) {
+    ul.innerHTML = '<li class="px-3 py-2 text-xs text-slate-400">Sin historias comprometidas</li>';
+    return;
+  }
+  if (!matches.length) {
+    ul.innerHTML = '<li class="px-3 py-2 text-xs text-slate-400 italic">Sin coincidencias para la búsqueda</li>';
+    return;
+  }
+  ul.innerHTML = matches.map(s => `
+    <li class="flex items-center gap-2 px-3 py-1.5">
+      <span class="text-xs font-bold text-emerald-700 shrink-0">${escapeAttr(s.id)}</span>
+      <span class="flex-1 min-w-0 truncate text-xs text-slate-700" title="${escapeAttr(s.title)}">${escapeAttr(s.title)}</span>
+      <span class="text-[10px] font-semibold text-slate-400 shrink-0 whitespace-nowrap">${s.dev}h · ${s.qa}h</span>
+      <span class="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded shrink-0 ${priorityClass(s.priority)}">${priorityLabel(s.priority)}</span>
+    </li>`).join('');
+}
+
+function renderOutList() {
+  const input = document.getElementById('outFilter');
+  const q = (input ? input.value : '').toLowerCase().trim();
+  const matches = !q ? outStoriesCache : outStoriesCache.filter(s =>
+    s.id.toLowerCase().includes(q) || s.title.toLowerCase().includes(q));
+  const countEl = document.getElementById('outCount');
+  const ul = document.getElementById('outListItems');
+  if (countEl) countEl.textContent = `${outStoriesCache.length}`;
+  if (!ul) return;
+  if (!outStoriesCache.length) {
+    ul.innerHTML = '<li class="px-3 py-2 text-xs text-slate-400">Sin historias fuera del sprint</li>';
+    return;
+  }
+  if (!matches.length) {
+    ul.innerHTML = '<li class="px-3 py-2 text-xs text-slate-400 italic">Sin coincidencias para la búsqueda</li>';
+    return;
+  }
+  ul.innerHTML = matches.map(s => `
+    <li class="flex items-center gap-2 px-3 py-1.5">
+      <span class="text-xs font-bold text-rose-700 shrink-0">${escapeAttr(s.id)}</span>
+      <span class="flex-1 min-w-0 truncate text-xs text-slate-600" title="${escapeAttr(s.title)}">${escapeAttr(s.title)}</span>
+      <span class="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded shrink-0 ${priorityClass(s.priority)}">${priorityLabel(s.priority)}</span>
+    </li>`).join('');
+}
+
+function recalc() {
+  const bd = baseDays();
+  setText('baseDays', bd);
+  setText('baseHours', Math.round(bd * n('hoursPerDay') * 100) / 100);
+
+  renderPeople('dev');
+  renderPeople('qa');
+
+  const c = capacity();
+  setText('devCapacity', c.devCap);
+  setText('qaCapacity', c.qaCap);
+  setText('opsDev', c.opsDev);
+  setText('opsQa', c.opsQa);
+  setText('ciDev', c.ciDev);
+  setText('ciQa', c.ciQa);
+  setText('commitDev', c.commitDev);
+  setText('commitQa', c.commitQa);
+  setText('commitDev2', c.commitDev);
+  setText('commitQa2', c.commitQa);
+
+  const planned = planStories(c.commitDev, c.commitQa);
+  renderStories(planned);
+  renderTimeline(planned);
+
+  const inStories = planned.filter(s => s.entra);
+  const outStories = planned.filter(s => !s.entra);
+
+  committedStoriesCache = inStories.map(s => ({ id: s.id, title: s.title, priority: s.priority, dev: Number(s.dev) || 0, qa: Number(s.qa) || 0 }));
+  outStoriesCache = outStories.map(s => ({ id: s.id, title: s.title, priority: s.priority }));
+  renderCommittedList();
+  renderOutList();
+
+  const outA = outStories.filter(s => s.priority === 'alta').length;
+  const outM = outStories.filter(s => s.priority === 'media').length;
+  const outB = outStories.filter(s => s.priority === 'baja').length;
+  setText('outByPriority', outStories.length
+    ? `Fuera por prioridad → Alta: ${outA} · Media: ${outM} · Baja: ${outB}`
+    : '');
+
+  const demandDev = inStories.reduce((a, s) => a + (Number(s.dev) || 0), 0);
+  const demandQa = inStories.reduce((a, s) => a + (Number(s.qa) || 0), 0);
+
+  const utilSpan = (id, value, over) => {
+    const el = document.getElementById(id);
+    el.textContent = value;
+    el.style.color = over ? '#be123c' : '#0f172a';
+  };
+  utilSpan('usedDev', Math.round(demandDev * 100) / 100, demandDev > c.commitDev);
+  utilSpan('usedQa', Math.round(demandQa * 100) / 100, demandQa > c.commitQa);
+
+  const balDev = Math.round((c.commitDev - demandDev) * 100) / 100;
+  const balQa = Math.round((c.commitQa - demandQa) * 100) / 100;
+  utilSpan('balDev', balDev, balDev < 0);
+  utilSpan('balQa', balQa, balQa < 0);
+
+  const utilDev = c.commitDev ? (demandDev / c.commitDev) * 100 : 0;
+  const utilQa = c.commitQa ? (demandQa / c.commitQa) * 100 : 0;
+  const utilDevOver = demandDev > c.commitDev;
+  const utilQaOver = demandQa > c.commitQa;
+  const pctDevEl = document.getElementById('utilDevPct');
+  const pctQaEl = document.getElementById('utilQaPct');
+  pctDevEl.textContent = `${utilDev.toFixed(1)}%`;
+  pctQaEl.textContent = `${utilQa.toFixed(1)}%`;
+  pctDevEl.style.color = utilDevOver ? '#be123c' : '#0f172a';
+  pctQaEl.style.color = utilQaOver ? '#be123c' : '#0f172a';
+  const barDevEl = document.getElementById('utilDevBar');
+  const barQaEl = document.getElementById('utilQaBar');
+  barDevEl.style.width = `${Math.min(100, utilDev)}%`;
+  barQaEl.style.width = `${Math.min(100, utilQa)}%`;
+  barDevEl.style.background = utilDevOver ? '#e11d48' : '';
+  barQaEl.style.background = utilQaOver ? '#e11d48' : '';
+
+  if (utilDevOver || utilQaOver) {
+    const overDev = utilDevOver ? demandDev - c.commitDev : 0;
+    const overQa = utilQaOver ? demandQa - c.commitQa : 0;
+    setText('utilNote', `⚠ La demanda sobrepasa la capacidad comprometida — Dev +${Math.round(overDev * 100) / 100} h · QA +${Math.round(overQa * 100) / 100} h`);
+  } else {
+    setText('utilNote', `No utilizada — Dev ${(100 - utilDev).toFixed(1)}% · QA ${(100 - utilQa).toFixed(1)}%`);
+  }
+
+  scheduleSave();
+}
+
+function defaultPeople() {
+  realDefaultPeople();
+  const devSnap = devPeople.slice();
+  const qaSnap = qaPeople.slice();
+  document.getElementById('sprintWorkDays').value = 10;
+  document.getElementById('hoursPerDay').value = 8;
+  document.getElementById('holidays').value = 0;
+  document.getElementById('opsReservePct').value = '15';
+  document.getElementById('ciReservePct').value = '15';
+  document.getElementById('weightAlta').value = 3;
+  document.getElementById('weightMedia').value = 2;
+  document.getElementById('weightBaja').value = 1;
+  if (!jiraMembersCache) {
+    fetchJiraMembers().then(() => {
+      const snapa = devPeople.slice();
+      const snapb = qaPeople.slice();
+      const unchanged = devSnap.length === snapa.length && devSnap.every((p, i) => p.name === snapa[i].name)
+        && qaSnap.length === snapb.length && qaSnap.every((p, i) => p.name === snapb[i].name);
+      if (unchanged) { realDefaultPeople(); recalc(); if (activeSessionId) saveNow(); }
+    }).catch(() => {});
+  }
+}
+
+function loadPdfExample() {
+  stories = PDF_EXAMPLE.map(s => ({ ...s }));
+  defaultPeople();
+  recalc();
+}
+
+function loadCarryOver() {
+  stories = BOARD_ACTUAL.filter(s => s.carryOver).map(s => ({ ...s }));
+  if (!devPeople.length || !qaPeople.length) defaultPeople();
+  document.getElementById('opsReservePct').value = '15';
+  document.getElementById('ciReservePct').value = '15';
+  recalc();
+}
+
+const PROXY_BASE = 'https://sprint.crediviva.com.pa';
+const JIRA_SITE = 'https://team-crediviva.atlassian.net';
+
+async function loadBoardActual() {
+  stories = BOARD_ACTUAL.map(s => ({ ...s }));
+  if (!devPeople.length || !qaPeople.length) defaultPeople();
+  document.getElementById('opsReservePct').value = '15';
+  document.getElementById('ciReservePct').value = '15';
+  recalc();
+}
+
+function loadSprint10() {
+  loadBoardActual();
+}
+
+let jiraSprintsCache = null;
+
+async function loadJiraSprintSelect() {
+  const sel = document.getElementById('jiraSprintSelect');
+  if (!sel) return null;
+  sel.innerHTML = '<option value="">Cargando sprints…</option>';
+  try {
+    const res = await fetch(`${PROXY_BASE}/api/jira/sprints`);
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.statusText);
+    const sprints = await res.json();
+    jiraSprintsCache = sprints;
+    const ordered = [...(sprints || [])].sort((a, b) => (a.state === 'active' ? -1 : 1) - (b.state === 'active' ? -1 : 1) || Number(a.id) - Number(b.id));
+    sel.innerHTML = [
+      '<option value="backlog">Backlog · sin sprint</option>',
+      ...ordered.map(s => `<option value="${s.id}">${s.name}${s.state === 'active' ? ' · activo' : ''}</option>`),
+    ].join('');
+    const active = ordered.find(s => s.state === 'active');
+    if (active) sel.value = String(active.id);
+  } catch (e) {
+    sel.innerHTML = '<option value="">Jira no disponible</option>';
+  }
+  return jiraSprintsCache;
+}
+
+async function importStoriesFromJira() {
+  const sel = document.getElementById('jiraSprintSelect');
+  const val = sel ? sel.value : '';
+  if (!val) return alert('Selecciona un sprint de Jira primero.');
+  const labelEl = sel.selectedOptions && sel.selectedOptions[0];
+  const label = labelEl ? labelEl.textContent : val;
+  if (stories.length && !confirm(`Esto reemplaza las ${stories.length} historia(s) actuales por las historias abiertas de ${label.trim()}. ¿Continuar?`)) return;
+  try {
+    const res = await fetch(`${PROXY_BASE}/api/jira/stories?sprint=${encodeURIComponent(val)}`);
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.statusText);
+    const list = await res.json();
+    if (!Array.isArray(list) || !list.length) { alert('No hay historias abiertas en ' + label.trim() + '.'); return; }
+    stories = list;
+    if (!devPeople.length || !qaPeople.length) defaultPeople();
+    recalc();
+    if (activeSessionId) saveNow();
+    setSessionStatus(`Importadas ${list.length} historias · ${label.trim()}`);
+  } catch (e) {
+    alert('Error al importar de Jira: ' + e.message);
+  }
+}
+
+/* — Guardado de horas DEV/QA a Jira (solo visibilidad en este proyecto: nunca toca assignee ni asignaciones internas) */
+
+let jiraHoursTimer = null;
+const pendingJiraHours = new Set(); // claves Jira (SCRUM-123) con horas pendientes de escribir
+
+function isJiraKey(id) {
+  return /^[A-Za-z]+-\d+$/.test(String(id || '').trim());
+}
+
+function setJiraSaveState(state, detail) {
+  const el = document.getElementById('jiraSaveStatus');
+  if (!el) return;
+  clearTimeout(setJiraSaveState._t);
+  if (state === 'saving') el.textContent = '⏳ Guardando horas en Jira…';
+  else if (state === 'ok') {
+    el.textContent = '✓ ' + (detail && detail.total > 1 ? detail.total + ' tickets guardados en Jira' : 'Horas guardadas en Jira');
+    setJiraSaveState._t = setTimeout(() => { el.textContent = ''; }, 3000);
+  } else if (state === 'fail') {
+    el.textContent = '⚠ ' + (detail ? detail.fail + ' de ' + detail.total : '') + ' no se pudieron guardar en Jira';
+    setJiraSaveState._t = setTimeout(() => { el.textContent = ''; }, 6000);
+  } else {
+    el.textContent = '';
+  }
+}
+
+function scheduleJiraHoursSave(i) {
+  const s = stories[i];
+  if (!s || !isJiraKey(s.id)) return;
+  if (!s.devDirty && !s.qaDirty) return; // sin cambios del usuario → no tocar el ticket
+  pendingJiraHours.add(String(s.id).trim());
+  if (jiraHoursTimer) clearTimeout(jiraHoursTimer);
+  jiraHoursTimer = setTimeout(flushJiraHoursSave, 800);
+}
+
+async function flushJiraHoursSave() {
+  if (jiraHoursTimer) clearTimeout(jiraHoursTimer);
+  jiraHoursTimer = null;
+  const ids = [...pendingJiraHours];
+  pendingJiraHours.clear();
+  if (!ids.length) return;
+  const byId = new Map(stories.map(st => [String(st.id).trim(), st]));
+  const payloads = [];
+  for (const id of ids) {
+    const s = byId.get(id);
+    if (!s) continue;
+    const dev = s.devDirty ? (s.dev == null || s.dev === '' ? '' : Number(s.dev)) : null;
+    const qa = s.qaDirty ? (s.qa == null || s.qa === '' ? '' : Number(s.qa)) : null;
+    if (dev === null && qa === null) continue;
+    payloads.push({ key: id, dev, qa });
+  }
+  if (!payloads.length) return;
+  setJiraSaveState('saving');
+  let ok = 0;
+  for (const item of payloads) {
+    try {
+      const res = await fetch(`${PROXY_BASE}/api/jira/story-hours`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item),
+      });
+      if (!res.ok) throw new Error(((await res.json().catch(() => ({}))).error) || res.statusText);
+      ok++;
+    } catch (e) {
+      console.error('[jira-hours] fallo al guardar', item.key, e.message);
+    }
+  }
+  setJiraSaveState(ok === payloads.length ? 'ok' : 'fail', { ok, fail: payloads.length - ok, total: payloads.length });
+}
+
+function exportCsv() {
+  const c = capacity();
+  const planned = planStories(c.commitDev, c.commitQa);
+  const lines = [
+    ['Eval_orden', 'ID', 'Titulo', 'Prioridad', 'Peso', 'CarryOver', 'Status', 'Dev_h', 'QA_h', 'Dev_Asignado', 'QA_Asignado', 'Entra', 'Saldo_Dev', 'Saldo_QA'].join(','),
+    ...planned.map(s => [s.index, csv(s.id), csv(s.title), priorityLabel(s.priority), s.weight, s.carryOver ? 'SI' : 'NO', csv(s.status || ''), stories[s.originalIndex] == null || stories[s.originalIndex].dev == null ? '' : stories[s.originalIndex].dev, stories[s.originalIndex] == null || stories[s.originalIndex].qa == null ? '' : stories[s.originalIndex].qa, s.devResource >= 0 ? csv(devPeople[s.devResource]?.name ?? '') : '', s.qaResource >= 0 ? csv(qaPeople[s.qaResource]?.name ?? '') : '', s.entra ? 'SI' : 'NO', s.balDev, s.balQa].join(',')),
+    '',
+    'Persona,Rol,Dias_libres,Horas',
+    ...devPeople.map(p => [csv(p.name), 'Dev', p.daysOff || 0, personHours(p)].join(',')),
+    ...qaPeople.map(p => [csv(p.name), 'QA', p.daysOff || 0, personHours(p)].join(',')),
+  ];
+  const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'sprint-capacity-plan.csv';
+  a.click();
+}
+
+function csv(v) {
+  const s = String(v ?? '');
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/* — Sesiones (autoguardado local) — */
+
+const SESSIONS_KEY = 'scp_sessions';
+const ACTIVE_KEY = 'scp_active_session';
+let activeSessionId = null;
+let sessionSuppress = false;
+let AUTH_USER = null;     // {accountId, displayName, email, cloudId} del usuario Atlassian
+let AUTH_MODE = 'local';  // 'authed' | 'required' (login bloqueante) | 'local' (proxy sin OAuth)
+let SHARED_META = null;   // itemUpdatedAt de la copia compartida en el servidor
+let sharedConflict = false;
+let sharedPushTimer = null;
+let sharedPullTimer = null;
+
+function getSessions() {
+  try { return JSON.parse(localStorage.getItem(SESSIONS_KEY) || '[]'); } catch (e) { return []; }
+}
+
+function renderSessionSelect() {
+  const sel = document.getElementById('sessionSelect');
+  if (!sel) return;
+  const list = getSessions();
+  sel.innerHTML = list.map(s => {
+    const t = new Date(s.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return `<option value="${s.id}">${escapeAttr((s.title || 'Sesión sin título').slice(0, 44))} · ${t}</option>`;
+  }).join('') || '<option value="">Sin sesiones</option>';
+  if (activeSessionId) sel.value = activeSessionId;
+}
+
+function collectSessionData() {
+  const read = id => document.getElementById(id).value;
+  const people = list => list.map(p => ({
+    name: p.name,
+    accountId: p.accountId || null,
+    daysOff: Number(p.daysOff) || 0,
+    hoursOverride: (p.hoursOverride == null || p.hoursOverride === '') ? null : Number(p.hoursOverride),
+  }));
+  return {
+    v: 1,
+    inputs: {
+      sprintWorkDays: read('sprintWorkDays'),
+      holidays: read('holidays'),
+      hoursPerDay: read('hoursPerDay'),
+      opsReservePct: read('opsReservePct'),
+      ciReservePct: read('ciReservePct'),
+      weightAlta: read('weightAlta'),
+      weightMedia: read('weightMedia'),
+      weightBaja: read('weightBaja'),
+    },
+    devPeople: people(devPeople),
+    qaPeople: people(qaPeople),
+    stories: stories.map(s => ({
+      id: s.id, title: s.title, priority: s.priority || 'media',
+      status: s.status || null, carryOver: !!s.carryOver,
+      dev: s.dev == null ? null : Number(s.dev), qa: s.qa == null ? null : Number(s.qa),
+      forcedDev: s.forcedDev || 'auto', forcedQa: s.forcedQa || 'auto',
+    })),
+  };
+}
+
+function setSessionStatus(text) {
+  const el = document.getElementById('sessionStatus');
+  if (el) el.textContent = text;
+}
+
+function saveSessionsList(list) {
+  localStorage.setItem(SESSIONS_KEY, JSON.stringify(list));
+  renderSessionSelect();
+  schedulePush();
+}
+
+/* — Autenticación Atlassian (OAuth) y sesiones compartidas por el equipo — */
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function showLoginOverlay(on) {
+  const o = document.getElementById('loginOverlay');
+  if (o) o.classList.toggle('hidden', !on);
+}
+
+function renderAuthBadge() {
+  const el = document.getElementById('authBadge');
+  if (!el) return;
+  if (AUTH_MODE === 'authed' && AUTH_USER) {
+    el.innerHTML = `<i class="fa-brands fa-jira text-white/80"></i> ${escapeHtml(AUTH_USER.displayName || AUTH_USER.email || 'Usuario')}`
+      + `<a href="https://sprint.crediviva.com.pa/auth/logout" title="Cerrar sesión" class="ml-2 text-rose-300/90 hover:text-rose-200 text-[11px]"><i class="fa-solid fa-right-from-bracket"></i> Salir</a>`;
+    el.classList.remove('hidden');
+  } else {
+    el.classList.add('hidden');
+  }
+}
+
+/* Devuelve 'authed' (usuario válido), 'required' (hay OAuth pero no logueado) o 'local' (proxy sin /auth/*) */
+async function authMe() {
+  try {
+    const res = await fetch('https://sprint.crediviva.com.pa/auth/me', { credentials: 'include' });
+    if (res.status === 401) { AUTH_MODE = 'required'; AUTH_USER = null; renderAuthBadge(); return AUTH_MODE; }
+    if (!res.ok) { AUTH_MODE = 'local'; AUTH_USER = null; renderAuthBadge(); return AUTH_MODE; }
+    const u = await res.json();
+    if (!u || !u.accountId) { AUTH_MODE = 'local'; AUTH_USER = null; renderAuthBadge(); return AUTH_MODE; }
+    AUTH_USER = u;
+    AUTH_MODE = 'authed';
+    renderAuthBadge();
+    return AUTH_MODE;
+  } catch (e) {
+    AUTH_MODE = 'local'; AUTH_USER = null; renderAuthBadge();
+    return AUTH_MODE;
+  }
+}
+
+function sessionsDiffer(a, b) {
+  if (a.length !== b.length) return true;
+  const key = x => JSON.stringify([x.id, x.title, x.savedAt, x.data]);
+  const ma = new Map(a.map(x => [x.id, key(x)]));
+  const mb = new Map(b.map(x => [x.id, key(x)]));
+  for (const [id, k] of ma) if (mb.get(id) !== k) return true;
+  for (const id of mb.keys()) if (!ma.has(id)) return true;
+  return false;
+}
+
+function adoptSharedSessions(server) {
+  const local = getSessions();
+  const prevActive = localStorage.getItem(ACTIVE_KEY);
+  localStorage.setItem(SESSIONS_KEY, JSON.stringify(server));
+  const active = server.find(s => s.id === prevActive) || server[0] || null;
+  if (active) {
+    activeSessionId = active.id;
+    localStorage.setItem(ACTIVE_KEY, active.id);
+    sessionSuppress = true;
+    applySessionData(active.data, active.title);
+    sessionSuppress = false;
+    migratePlaceholderTeam();
+  } else {
+    activeSessionId = null;
+  }
+  renderSessionSelect();
+  const last = [...server].reverse().find(s => s.updatedBy && s.updatedBy.displayName);
+  setSessionStatus(last
+    ? 'Compartido · última edición por ' + escapeHtml(last.updatedBy.displayName)
+    : 'Sincronizado con el equipo');
+}
+
+async function fetchSharedSessions() {
+  if (AUTH_MODE !== 'authed') return false;
+  try {
+    const res = await fetch('/api/planner/sessions', { credentials: 'include' });
+    if (!res.ok) return false;
+    const data = await res.json();
+    const server = Array.isArray(data.sessions) ? data.sessions : [];
+    SHARED_META = data.itemUpdatedAt != null ? data.itemUpdatedAt : null;
+    const local = getSessions();
+    if (server.length === 0 && local.length > 0 && !sharedConflict) {
+      // Primera vez en modo compartido: subimos lo que había en localStorage al pool del equipo.
+      const p = await fetch('/api/planner/sessions', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessions: local, baseUpdatedAt: SHARED_META }),
+      });
+      if (p.ok) {
+        const d = await p.json().catch(() => ({}));
+        SHARED_META = d.itemUpdatedAt != null ? d.itemUpdatedAt : SHARED_META;
+      }
+      return true;
+    }
+    if (sessionsDiffer(local, server)) adoptSharedSessions(server);
+    return true;
+  } catch (e) { return false; }
+}
+
+function schedulePush() {
+  if (AUTH_MODE !== 'authed') return;
+  clearTimeout(sharedPushTimer);
+  sharedPushTimer = setTimeout(pushSessions, 800);
+}
+
+async function pushSessions() {
+  if (AUTH_MODE !== 'authed' || sharedConflict) return;
+  clearTimeout(sharedPushTimer);
+  try {
+    const res = await fetch('/api/planner/sessions', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessions: getSessions(), baseUpdatedAt: SHARED_META }),
+    });
+    if (res.status === 409) {
+      sharedConflict = true;
+      const data = await res.json().catch(() => ({}));
+      SHARED_META = data.itemUpdatedAt != null ? data.itemUpdatedAt : SHARED_META;
+      if (confirm('Otro miembro del equipo actualizó el plan mientras estabas editando. ¿Recargar para ver sus cambios?')) {
+        location.reload();
+      } else {
+        sharedConflict = false;
+      }
+      return;
+    }
+    if (!res.ok) return;
+    const data = await res.json().catch(() => ({}));
+    SHARED_META = data.itemUpdatedAt != null ? data.itemUpdatedAt : SHARED_META;
+  } catch (e) { /* sin red: se reintenta en el próximo guardado */ }
+}
+
+function startSharedSync() {
+  if (AUTH_MODE !== 'authed') return;
+  clearInterval(sharedPullTimer);
+  sharedPullTimer = setInterval(() => { fetchSharedSessions(); }, 45_000);
+  if (document.addEventListener) document.addEventListener('visibilitychange', () => { if (!document.hidden) fetchSharedSessions(); });
+}
+
+function scheduleSave() {
+  if (sessionSuppress) return;
+  clearTimeout(scheduleSave._t);
+  if (!activeSessionId) return;
+  setSessionStatus('Guardando…');
+  scheduleSave._t = setTimeout(() => { saveNow(); }, 600);
+}
+
+function saveNow() {
+  if (sessionSuppress || !activeSessionId) return;
+  clearTimeout(scheduleSave._t);
+  const list = getSessions();
+  const idx = list.findIndex(s => s.id === activeSessionId);
+  if (idx === -1) return;
+  const title = (document.getElementById('sessionTitle').value || '').trim() || 'Sesión sin título';
+  list[idx].title = title;
+  list[idx].savedAt = new Date().toISOString();
+  list[idx].data = collectSessionData();
+  saveSessionsList(list);
+  setSessionStatus('Guardado ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+}
+
+function onTitleInput() {
+  scheduleSave();
+}
+
+function applySessionData(data, title) {
+  const set = (id, v) => { const el = document.getElementById(id); if (el != null && v != null) el.value = v; };
+  const inp = data.inputs || {};
+  set('sprintWorkDays', inp.sprintWorkDays);
+  set('holidays', inp.holidays);
+  set('hoursPerDay', inp.hoursPerDay);
+  set('opsReservePct', inp.opsReservePct);
+  set('ciReservePct', inp.ciReservePct);
+  set('weightAlta', inp.weightAlta);
+  set('weightMedia', inp.weightMedia);
+  set('weightBaja', inp.weightBaja);
+  devPeople = (data.devPeople || []).map(p => ({ name: p.name, accountId: p.accountId || null, daysOff: Number(p.daysOff) || 0, hoursOverride: (p.hoursOverride == null || p.hoursOverride === '') ? null : Number(p.hoursOverride) }));
+  qaPeople = (data.qaPeople || []).map(p => ({ name: p.name, accountId: p.accountId || null, daysOff: Number(p.daysOff) || 0, hoursOverride: (p.hoursOverride == null || p.hoursOverride === '') ? null : Number(p.hoursOverride) }));
+  stories = (data.stories || []).map(s => ({
+    id: s.id, title: s.title, priority: s.priority || 'media', status: s.status || null, carryOver: !!s.carryOver,
+    dev: s.dev == null ? null : Number(s.dev), qa: s.qa == null ? null : Number(s.qa), forcedDev: s.forcedDev || 'auto', forcedQa: s.forcedQa || 'auto',
+  }));
+  if (!devPeople.length) defaultPeople();
+  const titleInput = document.getElementById('sessionTitle');
+  if (titleInput) titleInput.value = title || 'Sesión sin título';
+  recalc();
+}
+
+function switchSession(id) {
+  saveNow();
+  const list = getSessions();
+  const s = list.find(x => x.id === id);
+  if (!s) return;
+  activeSessionId = id;
+  localStorage.setItem(ACTIVE_KEY, id);
+  sessionSuppress = true;
+  applySessionData(s.data, s.title);
+  sessionSuppress = false;
+  renderSessionSelect();
+  setSessionStatus('Guardado ' + new Date(s.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+}
+
+function newSession() {
+  saveNow();
+  const id = 's' + Date.now();
+  const list = getSessions();
+  const title = 'Sprint ' + (list.length + 1);
+  defaultPeople();
+  stories = [];
+  recalc();
+  const data = collectSessionData();
+  list.push({ id, title, savedAt: new Date().toISOString(), data });
+  activeSessionId = id;
+  localStorage.setItem(ACTIVE_KEY, id);
+  saveSessionsList(list);
+  document.getElementById('sessionTitle').value = title;
+  renderSessionSelect();
+  setSessionStatus('Nueva sesión creada');
+}
+
+function deleteSession() {
+  if (getSessions().length <= 1) { alert('Debes conservar al menos una sesión.'); return; }
+  if (!confirm('¿Eliminar la sesión actual? Esta acción no se puede deshacer.')) return;
+  const list = getSessions().filter(s => s.id !== activeSessionId);
+  saveSessionsList(list);
+  const next = list[0];
+  localStorage.setItem(ACTIVE_KEY, next.id);
+  switchSession(next.id);
+}
+
+(async function boot() {
+  const list = getSessions();
+  const act = localStorage.getItem(ACTIVE_KEY);
+  const active = (act && list.find(s => s.id === act)) || list[0] || null;
+  if (active && active.data) {
+    activeSessionId = active.id;
+    localStorage.setItem(ACTIVE_KEY, active.id);
+    sessionSuppress = true;
+    applySessionData(active.data, active.title);
+    sessionSuppress = false;
+    migratePlaceholderTeam();
+    if (activeSessionId) saveNow();
+    renderSessionSelect();
+    setSessionStatus('Guardado ' + new Date(active.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+  } else {
+    loadBoardActual();
+    activeSessionId = 's' + Date.now();
+    const fresh = getSessions();
+    fresh.push({ id: activeSessionId, title: 'Sprint 1', savedAt: new Date().toISOString(), data: collectSessionData() });
+    localStorage.setItem(ACTIVE_KEY, activeSessionId);
+    saveSessionsList(fresh);
+    document.getElementById('sessionTitle').value = 'Sprint 1';
+    setSessionStatus('Guardado');
+  }
+  loadJiraSprintSelect();
+  const mode = await authMe();
+  if (mode === 'required') {
+    showLoginOverlay(true);
+  } else if (mode === 'authed') {
+    await fetchSharedSessions();
+    startSharedSync();
+  }
+})();
+</script>
+
+  <!-- Modal: Equipo desde Jira -->
+  <div id="teamModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between px-5 py-3 border-b border-slate-200">
+        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-700"><i class="fa-solid fa-users-gear text-emerald-600 mr-1.5"></i>Equipo desde Jira</h3>
+        <button onclick="closeTeamModal()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="px-5 py-4 overflow-y-auto">
+        <p id="teamModalStatus" class="text-xs text-slate-500 mb-3">Cargando usuarios de Jira…</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <p class="text-xs font-semibold uppercase text-slate-500 mb-2">Desarrollo</p>
+            <div id="teamDevChecks" class="space-y-1.5 border border-slate-200 rounded-lg p-3 max-h-72 overflow-y-auto"></div>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase text-slate-500 mb-2">QA</p>
+            <div id="teamQaChecks" class="space-y-1.5 border border-slate-200 rounded-lg p-3 max-h-72 overflow-y-auto"></div>
+          </div>
+        </div>
+      </div>
+      <div class="px-5 py-3 border-t border-slate-200 flex justify-end gap-2">
+        <button onclick="closeTeamModal()" class="text-xs px-3 py-1.5 rounded border border-slate-300 text-slate-600 hover:bg-slate-50">Cancelar</button>
+        <button onclick="applyTeamModal()" class="text-xs px-4 py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">Aplicar equipo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: añadir persona individual -->
+  <div id="addPersonModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md">
+      <div class="flex items-center justify-between px-5 py-3 border-b border-slate-200">
+        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-700"><i class="fa-solid fa-user-plus text-indigo-600 mr-1.5"></i>Añadir <span id="addPersonRoleLabel">Dev</span></h3>
+        <button onclick="closeAddPersonModal()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="px-5 py-4 space-y-3">
+        <label class="text-xs text-slate-600 block">Selecciona un usuario de Jira:
+          <select id="addPersonSelect" onchange="onAddPersonSelect(this.value)" class="mt-1 w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm"></select>
+        </label>
+        <div id="addPersonManualWrap" class="hidden">
+          <label class="text-xs text-slate-600 block">Nombre (sin cuenta en Jira):
+            <input id="addPersonManualName" type="text" placeholder="Nombre de la persona…" class="mt-1 w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+          </label>
+        </div>
+      </div>
+      <div class="px-5 py-3 border-t border-slate-200 flex justify-end gap-2">
+        <button onclick="closeAddPersonModal()" class="text-xs px-3 py-1.5 rounded border border-slate-300 text-slate-600 hover:bg-slate-50">Cancelar</button>
+        <button onclick="applyAddPerson()" class="text-xs px-4 py-1.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Agregar</button>
+      </div>
+    </div>
+  </div>
+<!-- Login OAuth (solo cuando el backend lo exige) -->
+  <div id="loginOverlay" class="hidden fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
+      <i class="fa-brands fa-jira text-4xl text-blue-600 mb-3 inline-block"></i>
+      <h2 class="text-base font-bold text-slate-800 mb-1">Sprint Capacity Planner</h2>
+      <p class="text-sm text-slate-500 mb-5">Inicia sesión con tu cuenta de Atlassian para planificar con tu equipo.</p>
+      <a href="https://sprint.crediviva.com.pa/auth/login" class="inline-block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm py-2.5 rounded-lg">Entrar con Atlassian</a>
+    </div>
+  </div>
+</body>
+</html>

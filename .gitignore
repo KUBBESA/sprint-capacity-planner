@@ -1,0 +1,24 @@
+# AWS
+.aws-sam/
+samconfig.toml
+
+# Secrets
+config.json
+*.env
+.env.local
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

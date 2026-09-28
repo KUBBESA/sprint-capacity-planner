@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sprint Capacity Planner — Crediviva</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+  <header class="bg-slate-900 text-white shadow-md py-4 px-6 mb-6">
+    <div class="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+      <div>
+        <h1 class="text-xl font-bold flex items-center gap-2">
+          <i class="fa-solid fa-calculator text-indigo-400"></i>
+          Sprint Capacity Planner
+        </h1>
+        <p class="text-xs text-slate-400 mt-1">
+          Capacidad real (feriados/ausencias) + prioridad Alta/Media/Baja con peso.
+          <a class="text-indigo-300 underline" href="https://crediviva-images.s3.us-east-1.amazonaws.com/QA-Offset-Validator.html" target="_blank" rel="noopener">QA-Offset-Validator</a>
+        </p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button onclick="loadPdfExample()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded border border-slate-700">
+          <i class="fa-solid fa-file-lines mr-1"></i> Ejemplo PDF
+        </button>
+        <button onclick="loadBoardActual()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded">
+          <i class="fa-solid fa-list-check mr-1"></i> Cargar board Jira
+        </button>
+        <button onclick="exportCsv()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded border border-slate-700">
+          <i class="fa-solid fa-download mr-1"></i> Export CSV
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 w-full flex-grow pb-12 space-y-6">
+    <!-- Calendario -->
+    <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4">
+        <i class="fa-solid fa-calendar-days text-indigo-600 mr-1.5"></i> Calendario del sprint
+      </h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <label class="text-xs text-slate-600">Días hábiles del sprint
+          <input id="sprintWorkDays" type="number" min="1" step="0.5" value="10" oninput="recalc()" class="mt-1 w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold" />
+        </label>
+        <label class="text-xs text-slate-600">Horas / día laboral
+          <input id="hoursPerDay" type="number" min="1" step="0.5" value="8" oninput="recalc()" class="mt-1 w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold" />
+        </label>
+        <label class="text-xs text-slate-600">Feriados (días, todo el equipo)
+          <input id="holidays" type="number" min="0" step="0.5" value="0" oninput="recalc()" class="mt-1 w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold" />
+        </label>
+        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs flex flex-col justify-center">
+          <span class="text-slate-500">Día base por persona</span>
+          <span class="text-lg font-bold text-indigo-700"><span id="baseDays">10</span> d · <span id="baseHours">80</span> h</span>
+        </div>
+      </div>
+      <p class="text-xs text-slate-500 mt-3">
+        Por persona: <code class="bg-slate-100 px-1 rounded">(hábiles − feriados − días libres) × horas/día</code>. Override de horas si hace falta.
+      </p>
+    </section>
+
+    <!-- Personas -->
+    <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-5">
+      <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">
+        <i class="fa-solid fa-users text-indigo-600 mr-1.5"></i> 1. Disponibilidad por persona
+      </h2>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div>
+          <div class="flex justify-between items-center mb-2">
+            <p class="text-xs font-semibold text-slate-500 uppercase">Desarrollo</p>
+            <button onclick="addPerson('dev')" class="text-xs text-indigo-600 hover:underline"><i class="fa-solid fa-plus mr-1"></i>Añadir Dev</button>
+          </div>
+          <div class="overflow-x-auto border border-slate-200 rounded-lg">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="bg-slate-50 text-xs uppercase text-slate-500">
+                  <th class="py-2 px-2 text-left">Nombre</th>
+                  <th class="py-2 px-2 w-24">Días libres</th>
+                  <th class="py-2 px-2 w-24">Horas</th>
+                  <th class="py-2 px-2 w-10"></th>
+                </tr>
+              </thead>
+              <tbody id="devPeopleBody"></tbody>
+            </table>
+          </div>
+          <p class="text-sm mt-2">Capacidad Dev: <span id="devCapacity" class="font-bold text-indigo-700">0</span> h</p>
+        </div>
+        <div>
+          <div class="flex justify-between items-center mb-2">
+            <p class="text-xs font-semibold text-slate-500 uppercase">QA</p>
+            <button onclick="addPerson('qa')" class="text-xs text-indigo-600 hover:underline"><i class="fa-solid fa-plus mr-1"></i>Añadir QA</button>
+          </div>
+          <div class="overflow-x-auto border border-slate-200 rounded-lg">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="bg-slate-50 text-xs uppercase text-slate-500">
+                  <th class="py-2 px-2 text-left">Nombre</th>
+                  <th class="py-2 px-2 w-24">Días libres</th>
+                  <th class="py-2 px-2 w-24">Horas</th>
+                  <th class="py-2 px-2 w-10"></th>
+                </tr>
+              </thead>
+              <tbody id="qaPeopleBody"></tbody>
+            </table>
+          </div>
+          <p class="text-sm mt-2">Capacidad QA: <span id="qaCapacity" class="font-bold text-indigo-700">0</span> h</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pesos de prioridad -->
+    <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">
+        <i class="fa-solid fa-scale-balanced text-indigo-600 mr-1.5"></i> Prioridad y peso
+      </h2>
+      <div class="grid grid-cols-3 gap-3 mb-3">
+        <label class="text-xs text-slate-600">Peso Alta
+          <input id="weightAlta" type="number" min="1" value="3" oninput="recalc()" class="mt-1 w-full bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 text-sm font-bold text-rose-800" />
+        </label>
+        <label class="text-xs text-slate-600">Peso Media
+          <input id="weightMedia" type="number" min="1" value="2" oninput="recalc()" class="mt-1 w-full bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm font-bold text-amber-800" />
+        </label>
+        <label class="text-xs text-slate-600">Peso Baja
+          <input id="weightBaja" type="number" min="1" value="1" oninput="recalc()" class="mt-1 w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold text-slate-700" />
+        </label>
+      </div>
+      <p class="text-xs text-slate-500">
+        Se comprometen primero las de <strong>mayor peso</strong> (Alta → Media → Baja).
+        Si no alcanza capacidad, lo que queda fuera son las de menor importancia.
+        Dentro del mismo nivel, se respeta el orden de la lista.
+      </p>
+    </section>
+
+    <!-- Reservas -->
+    <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4">
+        <i class="fa-solid fa-shield-halved text-indigo-600 mr-1.5"></i> 2–4. Reservas y mejora continua
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <label class="text-xs text-slate-600">Reserva operativa (%)
+          <select id="opsReservePct" onchange="recalc()" class="mt-1 w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold">
+            <option value="10">10%</option>
+            <option value="15" selected>15% (conservador)</option>
+          </select>
+        </label>
+        <label class="text-xs text-slate-600">Mejora continua (%)
+          <select id="ciReservePct" onchange="recalc()" class="mt-1 w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold">
+            <option value="10">10%</option>
+            <option value="15" selected>15% (conservador)</option>
+          </select>
+        </label>
+        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs space-y-1">
+          <div>Ops Dev/QA: <span id="opsDev" class="font-bold">0</span> / <span id="opsQa" class="font-bold">0</span> h</div>
+          <div>CI Dev/QA: <span id="ciDev" class="font-bold">0</span> / <span id="ciQa" class="font-bold">0</span> h</div>
+        </div>
+      </div>
+      <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3">
+          <p class="text-xs uppercase text-indigo-700 font-semibold">Capacidad comprometible Dev</p>
+          <p class="text-2xl font-bold text-indigo-900"><span id="commitDev">0</span> h</p>
+        </div>
+        <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <p class="text-xs uppercase text-emerald-700 font-semibold">Capacidad comprometible QA</p>
+          <p class="text-2xl font-bold text-emerald-900"><span id="commitQa">0</span> h</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Historias -->
+    <section class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2 bg-slate-50">
+        <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">
+          <i class="fa-solid fa-table mr-1.5 text-indigo-600"></i> 5–6. Historias (se ordenan por peso al comprometer)
+        </h2>
+        <button onclick="addStory()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-medium">
+          <i class="fa-solid fa-plus mr-1"></i> Añadir historia
+        </button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead>
+            <tr class="bg-slate-100/70 text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200">
+              <th class="py-3 px-3 w-14 text-center">#</th>
+              <th class="py-3 px-3 min-w-[28rem]">Historia / Ticket</th>
+              <th class="py-3 px-3 w-32">Prioridad</th>
+              <th class="py-3 px-3 w-16 text-center">Peso</th>
+              <th class="py-3 px-3 w-24">Dev (h)</th>
+              <th class="py-3 px-3 w-24">QA (h)</th>
+              <th class="py-3 px-3 w-36 text-center">¿Entra?</th>
+              <th class="py-3 px-3 w-24">Saldo Dev</th>
+              <th class="py-3 px-3 w-24">Saldo QA</th>
+              <th class="py-3 px-3 w-12"></th>
+            </tr>
+          </thead>
+          <tbody id="storiesBody"></tbody>
+        </table>
+      </div>
+      <p class="text-xs text-slate-500 px-5 py-3 border-t border-slate-100">
+        Tres casos: <strong>solo Dev</strong> (QA=0), <strong>solo QA</strong> (Dev=0), o <strong>Dev+QA</strong>.
+        Sin horas → No. Cada input se topea al saldo restante de ese rol (ej. quedan 3 QA → máximo 3).
+      </p>
+    </section>
+
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">
+          <i class="fa-solid fa-flag-checkered text-indigo-600 mr-1.5"></i> 7. Resultado del sprint
+        </h2>
+        <div class="space-y-2 text-sm">
+          <p><span class="text-slate-500">Comprometidas:</span> <span id="committedList" class="font-medium text-emerald-700"></span></p>
+          <p><span class="text-slate-500">Fuera:</span> <span id="outList" class="font-medium text-rose-700"></span></p>
+          <p class="text-xs text-slate-500" id="outByPriority"></p>
+          <p>Dev usadas: <span id="usedDev" class="font-bold"></span> / <span id="commitDev2"></span> h · saldo <span id="balDev" class="font-bold"></span> h</p>
+          <p>QA usadas: <span id="usedQa" class="font-bold"></span> / <span id="commitQa2"></span> h · saldo <span id="balQa" class="font-bold"></span> h</p>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">
+          <i class="fa-solid fa-percent text-indigo-600 mr-1.5"></i> 8. Utilización
+        </h2>
+        <div class="space-y-3">
+          <div>
+            <div class="flex justify-between text-xs mb-1"><span>Utilización Dev</span><span id="utilDevPct" class="font-bold"></span></div>
+            <div class="h-2 bg-slate-100 rounded"><div id="utilDevBar" class="h-2 bg-indigo-500 rounded" style="width:0%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1"><span>Utilización QA</span><span id="utilQaPct" class="font-bold"></span></div>
+            <div class="h-2 bg-slate-100 rounded"><div id="utilQaBar" class="h-2 bg-emerald-500 rounded" style="width:0%"></div></div>
+          </div>
+          <p class="text-xs text-slate-500" id="utilNote"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="text-center text-xs text-slate-400 py-6">
+    Crediviva · Planning de Sprint basado en Capacidad
+  </footer>
+
+<script>
+/** @typedef {{ name: string, daysOff: number, hoursOverride: number|null }} Person */
+/** @typedef {{ id: string, title: string, priority: 'alta'|'media'|'baja', dev: number, qa: number, carryOver?: boolean, status?: string }} Story */
+
+/**
+ * Board actual (screenshots Jira).
+ * Horas en 0 → completar estimación. Hint: Ready for QA / QA/STG suelen ser solo QA (Dev=0).
+ */
+const BOARD_ACTUAL = [
+  // —— QA/STG ——
+  { id: 'SCRUM-129', title: 'Ares - Validación de APC + generación de variables (Ingreso, Situación Laboral) y consulta a Risk Seal', priority: 'alta', status: 'QA/STG', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-623', title: '[Pago servicios] [Backend] - Cambios y fixes en textos, reimplementación de los errores mockeados y más', priority: 'media', status: 'QA/STG', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-594', title: '[App] Pago de Servicios - Bloquear a Clientes en Blacklist de Pagar Servicios', priority: 'alta', status: 'QA/STG', carryOver: true, dev: 0, qa: 0 },
+
+  // —— Ready for QA ——
+  { id: 'SCRUM-14', title: 'Mensaje de Error Claro y Descriptivo ante Fallo de Pago', priority: 'alta', status: 'Ready for QA', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-18', title: 'Nox - Escenarios de Errores', priority: 'alta', status: 'Ready for QA', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-420', title: '[Backoffice] - Duplicidad de Comercios en la configuración de tasas', priority: 'media', status: 'Ready for QA', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-425', title: '[Reportes] - Estandarización de canal, medio y origen de registro de pagos', priority: 'media', status: 'Ready for QA', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-138', title: 'Habilitar la sección "Usuarios" para los comercios', priority: 'media', status: 'Ready for QA', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-29', title: '[Backend] - Scoring de mantenimiento RD', priority: 'alta', status: 'Ready for QA', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-145', title: '[Backoffice] - Crear rol, departamento y sucursal por defecto al registrar un comercio', priority: 'media', status: 'Ready for QA', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-463', title: 'Nox - Estandarización flujo de pago', priority: 'alta', status: 'Ready for QA', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-712', title: '[APP] Pago de servicios - Ajustes en Pantallas de errores', priority: 'media', status: 'Ready for QA', carryOver: true, dev: 0, qa: 0 },
+
+  // —— QA DEV ——
+  { id: 'SCRUM-479', title: '[Backoffice] - Columna y filtro de Sucursal de Comercio en módulo Solicitudes', priority: 'media', status: 'QA DEV', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-314', title: '[Backoffice] Mostrar el tipo de Retanqueo que obtuvo el usuario', priority: 'media', status: 'QA DEV', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-478', title: '[Backoffice] - Simulador_CREDIVIVA: Simulación personalizada según segmento de riesgo', priority: 'media', status: 'QA DEV', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-15', title: 'Registro de Intentos y Resultados de Pago para Auditoría (BO)', priority: 'media', status: 'QA DEV', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-541', title: '[App] Onboarding WhatsApp - Selección de tipo de cliente e inicio de flujo por WhatsApp', priority: 'media', status: 'QA DEV', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-542', title: '[App] Onboarding WhatsApp - Reenviar OTP por correo', priority: 'media', status: 'QA DEV', carryOver: true, dev: 0, qa: 0 },
+
+  // —— En revisión ——
+  { id: 'SCRUM-548', title: '[App] Onboarding WhatsApp - Validar teléfono automático o manual', priority: 'alta', status: 'En revisión', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-543', title: '[App] Onboarding WhatsApp - Registrar aceptación de términos y condiciones', priority: 'alta', status: 'En revisión', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-544', title: '[App] Onboarding WhatsApp - Registrar tratamiento de datos personales', priority: 'alta', status: 'En revisión', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-545', title: '[App] Onboarding WhatsApp - Registrar autorización de consulta APC', priority: 'media', status: 'En revisión', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-687', title: '[App] [Técnico] Onboarding WhatsApp - Invocación Lambda directa', priority: 'media', status: 'En revisión', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-483', title: '[Análisis] [Backend] Creación de usuarios - Revisar LAMBDA para interacciones post llamadas', priority: 'media', status: 'En revisión', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-547', title: '[App] Onboarding WhatsApp - Validar política de contraseña', priority: 'media', status: 'En revisión', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-686', title: '[App] [Técnico] Onboarding WhatsApp - Resolución multi-país por ambiente (Mongo, API Gateway, Lambda)', priority: 'media', status: 'En revisión', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-685', title: '[App] [Técnico] Onboarding WhatsApp - Manejo de sesión para endpoints privados', priority: 'media', status: 'En revisión', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-546', title: '[App] Onboarding WhatsApp - Crear contraseña e identificar canal', priority: 'media', status: 'En revisión', carryOver: true, dev: 0, qa: 0 },
+
+  // —— En curso ——
+  { id: 'SCRUM-707', title: '[App] [Técnico] - Onboarding WhatsApp - Instalación y configuración de librerías', priority: 'media', status: 'En curso', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-576', title: '[Backoffice] Creación de Reporte 4-44 Matriz de Riesgo', priority: 'media', status: 'En curso', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-394', title: 'REUNIONES', priority: 'alta', status: 'En curso', carryOver: true, dev: 0, qa: 0 },
+  { id: 'SCRUM-393', title: 'SOPORTE', priority: 'alta', status: 'En curso', carryOver: true, dev: 0, qa: 0 },
+
+  // —— Prioritized (sprint) ——
+  { id: 'SCRUM-624', title: 'QA - Regresión release 3.8.0', priority: 'alta', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-549', title: '[App] Onboarding WhatsApp - Validar KYC con Jumio', priority: 'alta', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-550', title: '[App] Onboarding WhatsApp - Validar KYC con Veriff', priority: 'alta', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-551', title: '[App] Onboarding WhatsApp - Cambiar automáticamente de Jumio a Veriff', priority: 'alta', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-552', title: '[App] Onboarding WhatsApp - Gestionar selección automática de proveedor KYC', priority: 'alta', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-553', title: '[App] Onboarding WhatsApp - Identificar cliente Luz Verde y derivar a App', priority: 'alta', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-554', title: '[App] Onboarding WhatsApp - Controlar bloqueos, reintentos KYC y resumen', priority: 'alta', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-555', title: '[App] Onboarding WhatsApp - Solicitar y validar ingreso mensual', priority: 'alta', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-556', title: '[App] Onboarding WhatsApp - Ejecutar scoring, RiskSeal e identificar canal', priority: 'alta', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-557', title: '[App] Onboarding WhatsApp - Seleccionar y validar monto solicitado', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-558', title: '[App] Onboarding WhatsApp - Seleccionar comercios favoritos', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-702', title: '[Backoffice] Pago de Servicios - Habilitar sección en el backoffice para poder realizar reintentos de Pago', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-704', title: '[Backoffice] - Bloquear el botón de excepcionar solicitudes hasta que esta esté completa con status APPROVED o REJECTED', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-684', title: '[Veriff] Guardar información que nos envía Veriff', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-667', title: '[App] Redondear a (.00) Las Cuotas de los Creditos en RD', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-668', title: '[Backoffice] Agregar Columna de Sucursal - Modulo de Creditos', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-690', title: '[REPORTES] - Ticket reporte NPL', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-311', title: '[Backoffice][App] - Validation de Referencias - Score de Comportamiento', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-669', title: '[Backoffice] Habilitar Vista de Pagos - ROL Gerentes (Usuarios)', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-698', title: '[Deuda Técnica] - Lambda - Mejoras', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-699', title: '[Deuda Técnica] - Barrido de Error de Desembolso Mifos & Mongo DB', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-672', title: '[IT] Carta Saldo - 90 días', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-691', title: '[App] Fix de error de registro en país', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-572', title: '[Backoffice] Solicitar Sucursal al dar click en otorgar crédito', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-710', title: '[Backoffice] - Modificación de formato de fechas', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-488', title: '[App] Mejora de visibilidad del botón de consentimiento en Iniciar Verificación', priority: 'baja', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-720', title: '[Integración] Actualización de API de Veriff', priority: 'media', status: 'Prioritized', carryOver: false, dev: 0, qa: 0 },
+
+  // —— Backlog ——
+  { id: 'SCRUM-632', title: 'Reunirse con mario', priority: 'baja', status: 'Backlog', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-711', title: '[Contratos] Actualización de contrato RD', priority: 'media', status: 'Backlog', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-713', title: '[BlackList] - Eliminar registro de la black list', priority: 'media', status: 'Backlog', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-718', title: '[Integración] TransUnión - Socialización', priority: 'media', status: 'Backlog', carryOver: false, dev: 0, qa: 0 },
+  { id: 'SCRUM-721', title: '[Pago de servicios] Error en las redirecciones en el flujo de pago', priority: 'media', status: 'Backlog', carryOver: false, dev: 0, qa: 0 },
+];
+
+const PDF_EXAMPLE = [
+  { id: 'US 1', title: 'Historia ejemplo 1', priority: 'alta', dev: 36, qa: 24 },
+  { id: 'US 2', title: 'Historia ejemplo 2', priority: 'alta', dev: 24, qa: 10 },
+  { id: 'US 3', title: 'Historia ejemplo 3', priority: 'alta', dev: 8, qa: 12 },
+  { id: 'US 4', title: 'Historia ejemplo 4', priority: 'media', dev: 48, qa: 36 },
+  { id: 'US 5', title: 'Historia ejemplo 5', priority: 'media', dev: 20, qa: 8 },
+  { id: 'US 6', title: 'Historia ejemplo 6', priority: 'baja', dev: 18, qa: 28 },
+  { id: 'US 7', title: 'Historia ejemplo 7', priority: 'media', dev: 2, qa: 5 },
+  { id: 'US 8', title: 'Historia ejemplo 8', priority: 'media', dev: 10, qa: 5 },
+  { id: 'US 9', title: 'Historia ejemplo 9', priority: 'baja', dev: 18, qa: 16 },
+  { id: 'US 10', title: 'Historia ejemplo 10', priority: 'baja', dev: 25, qa: 8 },
+  { id: 'US 11', title: 'Historia ejemplo 11 (solo QA)', priority: 'baja', dev: 0, qa: 48 },
+];
+
+/** @type {Story[]} */
+let stories = [];
+/** @type {Person[]} */
+let devPeople = [];
+/** @type {Person[]} */
+let qaPeople = [];
+
+function n(id) {
+  return Number(document.getElementById(id).value) || 0;
+}
+
+function priorityWeight(p) {
+  if (p === 'alta') return n('weightAlta') || 3;
+  if (p === 'media') return n('weightMedia') || 2;
+  return n('weightBaja') || 1;
+}
+
+function priorityLabel(p) {
+  return p === 'alta' ? 'Alta' : p === 'media' ? 'Media' : 'Baja';
+}
+
+function priorityClass(p) {
+  if (p === 'alta') return 'bg-rose-100 text-rose-800 border-rose-200';
+  if (p === 'media') return 'bg-amber-100 text-amber-800 border-amber-200';
+  return 'bg-slate-100 text-slate-700 border-slate-200';
+}
+
+function baseDays() {
+  return Math.max(0, n('sprintWorkDays') - n('holidays'));
+}
+
+function personHours(p) {
+  if (p.hoursOverride != null && p.hoursOverride !== '' && !Number.isNaN(Number(p.hoursOverride))) {
+    return Math.max(0, Number(p.hoursOverride));
+  }
+  const days = Math.max(0, baseDays() - (Number(p.daysOff) || 0));
+  return Math.round(days * n('hoursPerDay') * 100) / 100;
+}
+
+function capacity() {
+  const devCap = Math.round(devPeople.reduce((a, p) => a + personHours(p), 0) * 100) / 100;
+  const qaCap = Math.round(qaPeople.reduce((a, p) => a + personHours(p), 0) * 100) / 100;
+  const opsPct = n('opsReservePct') / 100;
+  const ciPct = n('ciReservePct') / 100;
+  const opsDev = Math.round(devCap * opsPct);
+  const opsQa = Math.round(qaCap * opsPct);
+  const ciDev = Math.round(devCap * ciPct);
+  const ciQa = Math.round(qaCap * ciPct);
+  return {
+    devCap, qaCap, opsDev, opsQa, ciDev, ciQa,
+    commitDev: Math.max(0, Math.round((devCap - opsDev - ciDev) * 100) / 100),
+    commitQa: Math.max(0, Math.round((qaCap - opsQa - ciQa) * 100) / 100),
+  };
+}
+
+/** Ordena por peso desc; empate → orden original de la lista. */
+function sortedForCommit() {
+  return stories
+    .map((s, originalIndex) => ({ ...s, originalIndex, weight: priorityWeight(s.priority || 'media') }))
+    .sort((a, b) => {
+      if (b.weight !== a.weight) return b.weight - a.weight;
+      return a.originalIndex - b.originalIndex;
+    });
+}
+
+function planStories(commitDev, commitQa) {
+  let balDev = commitDev;
+  let balQa = commitQa;
+  return sortedForCommit().map((s, i) => {
+    const maxDev = balDev;
+    const maxQa = balQa;
+    const dev = Number(s.dev) || 0;
+    const qa = Number(s.qa) || 0;
+    const hasEstimate = dev > 0 || qa > 0;
+    const okDev = balDev >= dev;
+    const okQa = balQa >= qa;
+    const entra = hasEstimate && okDev && okQa;
+    let reason = '';
+    if (!hasEstimate) {
+      reason = 'Sin horas';
+    } else if (entra) {
+      balDev = Math.round((balDev - dev) * 100) / 100;
+      balQa = Math.round((balQa - qa) * 100) / 100;
+      if (dev > 0 && qa > 0) reason = 'Dev+QA';
+      else if (dev > 0) reason = 'Solo Dev';
+      else reason = 'Solo QA';
+    } else if (!okDev && !okQa) reason = 'Falta Dev y QA';
+    else if (!okDev) reason = 'Falta Dev';
+    else reason = 'Falta QA';
+    return { ...s, index: i + 1, entra, balDev, balQa, maxDev, maxQa, dev, qa, reason };
+  });
+}
+
+/** Cupo restante Dev/QA al llegar a cada historia (antes de asignarle horas). */
+function remainingCaps(commitDev, commitQa) {
+  const caps = {};
+  let balDev = commitDev;
+  let balQa = commitQa;
+  for (const s of sortedForCommit()) {
+    caps[s.originalIndex] = {
+      maxDev: Math.max(0, Math.round(balDev * 100) / 100),
+      maxQa: Math.max(0, Math.round(balQa * 100) / 100),
+    };
+    const dev = Number(s.dev) || 0;
+    const qa = Number(s.qa) || 0;
+    if ((dev > 0 || qa > 0) && balDev >= dev && balQa >= qa) {
+      balDev = Math.round((balDev - dev) * 100) / 100;
+      balQa = Math.round((balQa - qa) * 100) / 100;
+    }
+  }
+  return caps;
+}
+
+function clampHours(i, key, value) {
+  const raw = Math.max(0, Number(value) || 0);
+  const c = capacity();
+  // Ignorar temporalmente las horas actuales de este ticket para calcular el cupo real disponible.
+  const saved = stories[i][key];
+  stories[i][key] = 0;
+  const caps = remainingCaps(c.commitDev, c.commitQa);
+  stories[i][key] = saved;
+  const max = key === 'dev' ? (caps[i]?.maxDev ?? c.commitDev) : (caps[i]?.maxQa ?? c.commitQa);
+  return Math.min(raw, max);
+}
+
+/** Re-topean Dev/QA de todas las historias al saldo (p.ej. tras cambiar personas/prioridad). */
+function reclampAllStories() {
+  const c = capacity();
+  let balDev = c.commitDev;
+  let balQa = c.commitQa;
+  for (const s of sortedForCommit()) {
+    const i = s.originalIndex;
+    const dev = Math.min(Math.max(0, Number(stories[i].dev) || 0), balDev);
+    const qa = Math.min(Math.max(0, Number(stories[i].qa) || 0), balQa);
+    stories[i].dev = Math.round(dev * 100) / 100;
+    stories[i].qa = Math.round(qa * 100) / 100;
+    if ((dev > 0 || qa > 0) && balDev >= dev && balQa >= qa) {
+      balDev = Math.round((balDev - dev) * 100) / 100;
+      balQa = Math.round((balQa - qa) * 100) / 100;
+    }
+  }
+}
+
+function escapeAttr(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+function renderPeople(role) {
+  const list = role === 'dev' ? devPeople : qaPeople;
+  const body = document.getElementById(role === 'dev' ? 'devPeopleBody' : 'qaPeopleBody');
+  body.innerHTML = list.map((p, i) => {
+    const auto = personHours({ ...p, hoursOverride: null });
+    const hrs = personHours(p);
+    const overridden = p.hoursOverride != null && p.hoursOverride !== '';
+    return `
+      <tr class="border-t border-slate-100">
+        <td class="py-1.5 px-2">
+          <input value="${escapeAttr(p.name)}" onchange="updatePerson('${role}',${i},'name',this.value)"
+            class="w-full bg-transparent border-b border-slate-200 text-xs font-medium focus:outline-none focus:border-indigo-400" />
+        </td>
+        <td class="py-1.5 px-2">
+          <input type="number" min="0" step="0.5" value="${p.daysOff || 0}"
+            onchange="updatePerson('${role}',${i},'daysOff',this.value)"
+            onblur="updatePerson('${role}',${i},'daysOff',this.value)"
+            class="w-20 bg-white border border-slate-300 rounded px-2 py-1 text-sm font-bold" />
+        </td>
+        <td class="py-1.5 px-2">
+          <input type="number" min="0" step="0.5" value="${hrs}"
+            onchange="updatePerson('${role}',${i},'hoursOverride',this.value)"
+            onblur="updatePerson('${role}',${i},'hoursOverride',this.value)"
+            class="w-20 bg-white border rounded px-2 py-1 text-sm font-bold ${overridden ? 'border-amber-400' : 'border-slate-300'}"
+            title="Auto: ${auto}h" />
+        </td>
+        <td class="py-1.5 px-2 text-center">
+          <button onclick="removePerson('${role}',${i})" class="text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash text-xs"></i></button>
+        </td>
+      </tr>`;
+  }).join('') || `<tr><td colspan="4" class="py-3 px-2 text-xs text-slate-400">Sin personas</td></tr>`;
+}
+
+function updatePerson(role, i, key, value) {
+  const list = role === 'dev' ? devPeople : qaPeople;
+  if (key === 'daysOff') {
+    const next = Number(value) || 0;
+    if (list[i].daysOff === next && list[i].hoursOverride == null) return;
+    list[i].daysOff = next;
+    list[i].hoursOverride = null;
+  } else if (key === 'hoursOverride') {
+    const next = value === '' ? null : Number(value);
+    if (list[i].hoursOverride === next) return;
+    list[i].hoursOverride = next;
+  } else {
+    if (list[i][key] === value) return;
+    list[i][key] = value;
+  }
+  recalc();
+}
+
+function addPerson(role) {
+  const list = role === 'dev' ? devPeople : qaPeople;
+  list.push({ name: role === 'dev' ? `Dev ${list.length + 1}` : `QA ${list.length + 1}`, daysOff: 0, hoursOverride: null });
+  recalc();
+}
+
+function removePerson(role, i) {
+  (role === 'dev' ? devPeople : qaPeople).splice(i, 1);
+  recalc();
+}
+
+function renderStories(planned) {
+  document.getElementById('storiesBody').innerHTML = planned.map((s) => {
+    const oi = s.originalIndex;
+    return `
+    <tr class="border-b border-slate-100 ${s.entra ? 'bg-emerald-50/40' : 'bg-rose-50/30'}">
+      <td class="py-2 px-3 text-center text-slate-500 font-medium align-top">${s.index}</td>
+      <td class="py-2 px-3 align-top min-w-[28rem]">
+        <div class="flex flex-wrap items-center gap-1.5 mb-1.5">
+          <input value="${escapeAttr(s.id)}" onchange="updateStory(${oi},'id',this.value)"
+            class="w-36 bg-white border border-slate-300 rounded px-2 py-1 text-xs font-bold text-indigo-800" />
+          ${s.carryOver ? `<span class="text-[10px] font-bold uppercase tracking-wide bg-amber-100 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded">WIP</span>` : `<span class="text-[10px] font-bold uppercase tracking-wide bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded">Nuevo</span>`}
+          ${s.status ? `<span class="text-[10px] text-slate-500">${escapeAttr(s.status)}</span>` : ''}
+        </div>
+        <textarea rows="2" onchange="updateStory(${oi},'title',this.value)"
+          class="w-full bg-white border border-slate-300 rounded px-2 py-1.5 text-sm text-slate-800 leading-snug resize-y">${escapeAttr(s.title)}</textarea>
+      </td>
+      <td class="py-2 px-3">
+        <select onchange="updateStory(${oi},'priority',this.value)" class="w-full border rounded px-2 py-1 text-xs font-bold ${priorityClass(s.priority)}">
+          <option value="alta" ${s.priority==='alta'?'selected':''}>Alta</option>
+          <option value="media" ${s.priority==='media'?'selected':''}>Media</option>
+          <option value="baja" ${s.priority==='baja'?'selected':''}>Baja</option>
+        </select>
+      </td>
+      <td class="py-2 px-3 text-center font-mono text-xs font-bold">${s.weight}</td>
+      <td class="py-2 px-3 align-top">
+        <input type="number" min="0" max="${s.maxDev}" step="0.5" value="${s.dev}"
+          onchange="updateStory(${oi},'dev',this.value)"
+          onblur="updateStory(${oi},'dev',this.value)"
+          class="w-20 bg-white border border-slate-300 rounded px-2 py-1 text-sm font-bold"
+          title="Máximo disponible Dev: ${s.maxDev} h" />
+        <div class="text-[10px] text-slate-400 mt-0.5">máx ${s.maxDev}</div>
+      </td>
+      <td class="py-2 px-3 align-top">
+        <input type="number" min="0" max="${s.maxQa}" step="0.5" value="${s.qa}"
+          onchange="updateStory(${oi},'qa',this.value)"
+          onblur="updateStory(${oi},'qa',this.value)"
+          class="w-20 bg-white border border-slate-300 rounded px-2 py-1 text-sm font-bold"
+          title="Máximo disponible QA: ${s.maxQa} h" />
+        <div class="text-[10px] text-slate-400 mt-0.5">máx ${s.maxQa}</div>
+      </td>
+      <td class="py-2 px-3 text-center align-top">
+        <span class="inline-flex flex-col items-center gap-0.5 text-xs font-bold ${s.entra ? 'text-emerald-700' : 'text-rose-700'}">
+          <span><i class="fa-solid ${s.entra ? 'fa-check' : 'fa-xmark'}"></i> ${s.entra ? 'Sí' : 'No'}</span>
+          <span class="text-[10px] font-medium ${s.entra ? 'text-emerald-600' : 'text-rose-500'}">${escapeAttr(s.reason)}</span>
+        </span>
+      </td>
+      <td class="py-2 px-3 font-mono text-xs ${s.entra ? 'text-slate-700' : 'text-slate-400'}">${s.balDev}</td>
+      <td class="py-2 px-3 font-mono text-xs ${s.entra ? 'text-slate-700' : 'text-slate-400'}">${s.balQa}</td>
+      <td class="py-2 px-3 text-center">
+        <button onclick="removeStory(${oi})" class="text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function updateStory(i, key, value) {
+  if (key === 'dev' || key === 'qa') {
+    const next = clampHours(i, key, value);
+    if (stories[i][key] === next) return; // evita re-render si no cambió (p.ej. blur duplicado)
+    stories[i][key] = next;
+  } else {
+    if (stories[i][key] === value) return;
+    stories[i][key] = value;
+  }
+  recalc();
+}
+
+function addStory() {
+  stories.push({ id: `US ${stories.length + 1}`, title: 'Nueva historia', priority: 'media', dev: 0, qa: 0 });
+  recalc();
+}
+
+function removeStory(i) {
+  stories.splice(i, 1);
+  recalc();
+}
+
+function setText(id, v) { document.getElementById(id).textContent = v; }
+
+function recalc() {
+  const bd = baseDays();
+  setText('baseDays', bd);
+  setText('baseHours', Math.round(bd * n('hoursPerDay') * 100) / 100);
+
+  renderPeople('dev');
+  renderPeople('qa');
+
+  const c = capacity();
+  reclampAllStories();
+  // capacity() otra vez no hace falta; reclamp usa commit actual
+  setText('devCapacity', c.devCap);
+  setText('qaCapacity', c.qaCap);
+  setText('opsDev', c.opsDev);
+  setText('opsQa', c.opsQa);
+  setText('ciDev', c.ciDev);
+  setText('ciQa', c.ciQa);
+  setText('commitDev', c.commitDev);
+  setText('commitQa', c.commitQa);
+  setText('commitDev2', c.commitDev);
+  setText('commitQa2', c.commitQa);
+
+  const planned = planStories(c.commitDev, c.commitQa);
+  renderStories(planned);
+
+  const inStories = planned.filter(s => s.entra);
+  const outStories = planned.filter(s => !s.entra);
+  const usedDev = inStories.reduce((a, s) => a + s.dev, 0);
+  const usedQa = inStories.reduce((a, s) => a + s.qa, 0);
+
+  setText('committedList', inStories.length ? inStories.map(s => `${s.id}(${priorityLabel(s.priority)[0]})`).join(', ') : '—');
+  setText('outList', outStories.length ? outStories.map(s => `${s.id}(${priorityLabel(s.priority)[0]})`).join(', ') : '—');
+
+  const outA = outStories.filter(s => s.priority === 'alta').length;
+  const outM = outStories.filter(s => s.priority === 'media').length;
+  const outB = outStories.filter(s => s.priority === 'baja').length;
+  setText('outByPriority', outStories.length
+    ? `Fuera por prioridad → Alta: ${outA} · Media: ${outM} · Baja: ${outB}`
+    : '');
+
+  setText('usedDev', usedDev);
+  setText('usedQa', usedQa);
+  setText('balDev', Math.round((c.commitDev - usedDev) * 100) / 100);
+  setText('balQa', Math.round((c.commitQa - usedQa) * 100) / 100);
+
+  const utilDev = c.commitDev ? (usedDev / c.commitDev) * 100 : 0;
+  const utilQa = c.commitQa ? (usedQa / c.commitQa) * 100 : 0;
+  setText('utilDevPct', `${utilDev.toFixed(1)}%`);
+  setText('utilQaPct', `${utilQa.toFixed(1)}%`);
+  document.getElementById('utilDevBar').style.width = `${Math.min(100, utilDev)}%`;
+  document.getElementById('utilQaBar').style.width = `${Math.min(100, utilQa)}%`;
+  setText('utilNote', `No utilizada — Dev ${(100 - utilDev).toFixed(1)}% · QA ${(100 - utilQa).toFixed(1)}%`);
+}
+
+function defaultPeople() {
+  devPeople = [
+    { name: 'Dev 1', daysOff: 0, hoursOverride: null },
+    { name: 'Dev 2', daysOff: 0, hoursOverride: null },
+    { name: 'Dev 3', daysOff: 0, hoursOverride: null },
+  ];
+  qaPeople = [
+    { name: 'QA 1', daysOff: 0, hoursOverride: null },
+    { name: 'QA 2', daysOff: 0, hoursOverride: null },
+  ];
+  document.getElementById('sprintWorkDays').value = 10;
+  document.getElementById('hoursPerDay').value = 8;
+  document.getElementById('holidays').value = 0;
+  document.getElementById('opsReservePct').value = '15';
+  document.getElementById('ciReservePct').value = '15';
+  document.getElementById('weightAlta').value = 3;
+  document.getElementById('weightMedia').value = 2;
+  document.getElementById('weightBaja').value = 1;
+}
+
+function loadPdfExample() {
+  stories = PDF_EXAMPLE.map(s => ({ ...s }));
+  defaultPeople();
+  recalc();
+}
+
+function loadCarryOver() {
+  stories = BOARD_ACTUAL.filter(s => s.carryOver).map(s => ({ ...s }));
+  if (!devPeople.length || !qaPeople.length) defaultPeople();
+  document.getElementById('opsReservePct').value = '15';
+  document.getElementById('ciReservePct').value = '15';
+  recalc();
+}
+
+function loadBoardActual() {
+  stories = BOARD_ACTUAL.map(s => ({ ...s }));
+  if (!devPeople.length || !qaPeople.length) defaultPeople();
+  document.getElementById('opsReservePct').value = '15';
+  document.getElementById('ciReservePct').value = '15';
+  recalc();
+}
+
+function loadSprint10() {
+  loadBoardActual();
+}
+
+function exportCsv() {
+  const c = capacity();
+  const planned = planStories(c.commitDev, c.commitQa);
+  const lines = [
+    ['Eval_orden', 'ID', 'Titulo', 'Prioridad', 'Peso', 'CarryOver', 'Status', 'Dev_h', 'QA_h', 'Entra', 'Saldo_Dev', 'Saldo_QA'].join(','),
+    ...planned.map(s => [s.index, csv(s.id), csv(s.title), priorityLabel(s.priority), s.weight, s.carryOver ? 'SI' : 'NO', csv(s.status || ''), s.dev, s.qa, s.entra ? 'SI' : 'NO', s.balDev, s.balQa].join(',')),
+    '',
+    'Persona,Rol,Dias_libres,Horas',
+    ...devPeople.map(p => [csv(p.name), 'Dev', p.daysOff || 0, personHours(p)].join(',')),
+    ...qaPeople.map(p => [csv(p.name), 'QA', p.daysOff || 0, personHours(p)].join(',')),
+  ];
+  const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'sprint-capacity-plan.csv';
+  a.click();
+}
+
+function csv(v) {
+  const s = String(v ?? '');
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+loadBoardActual();
+</script>
+</body>
+</html>
