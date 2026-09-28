@@ -1,0 +1,41 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - echo "Building Sprint Capacity Planner"
+    build:
+      commands:
+        - echo "Build complete"
+  artifacts:
+    baseDirectory: .
+    files:
+      - '**/*'
+  rewritesAndRedirects:
+    # Auth routes → API Gateway
+    - source: /auth/login
+      target: https://cctqr6dqrk.execute-api.us-east-1.amazonaws.com/auth/login
+      status: 200
+    - source: /auth/callback
+      target: https://cctqr6dqrk.execute-api.us-east-1.amazonaws.com/auth/callback
+      status: 200
+    - source: /auth/me
+      target: https://cctqr6dqrk.execute-api.us-east-1.amazonaws.com/auth/me
+      status: 200
+    - source: /auth/logout
+      target: https://cctqr6dqrk.execute-api.us-east-1.amazonaws.com/auth/logout
+      status: 200
+    # API routes → API Gateway
+    - source: /api/jira/<*>
+      target: https://cctqr6dqrk.execute-api.us-east-1.amazonaws.com/api/jira/$1
+      status: 200
+    - source: /api/planner/<*>
+      target: https://cctqr6dqrk.execute-api.us-east-1.amazonaws.com/api/planner/$1
+      status: 200
+    # SPA fallback → index.html
+    - source: /<*>\.html
+      target: /index.html
+      status: 200
+    - source: /<*>
+      target: /index.html
+      status: 404
