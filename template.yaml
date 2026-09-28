@@ -244,40 +244,6 @@ Resources:
         HeadersConfig: { HeaderBehavior: allViewer }
         QueryStringsConfig: { QueryStringBehavior: all }
 
-  FixApiHostFunction:
-    Type: AWS::CloudFront::Function
-    Properties:
-      Name: !Sub FixApiHost-${AWS::StackName}
-      FunctionCode: |
-        function handler(event) {
-          var request = event.request;
-          var uri = request.uri;
-          if (uri.indexOf('/api/') === 0 || uri.indexOf('/auth/') === 0) {
-            request.headers.host = { value: 'cctqr6dqrk.execute-api.us-east-1.amazonaws.com' };
-          }
-          return request;
-        }
-      FunctionConfig:
-        Comment: Fix Host header for API Gateway requests
-        Runtime: cloudfront-js-2.0
-
-  FixApiHostFunctionAssociation:
-    Type: AWS::CloudFront::FunctionAssociation
-    Properties:
-      DistributionId: !Ref CloudFrontDistribution
-      EventType: viewer-request
-      FunctionARN: !GetAtt FixApiHostFunction.FunctionARN
-      PathPattern: /api/*
-
-  FixApiHostFunctionAssociation2:
-    Type: AWS::CloudFront::FunctionAssociation
-    Properties:
-      DistributionId: !Ref CloudFrontDistribution
-      EventType: viewer-request
-      FunctionARN: !GetAtt FixApiHostFunction.FunctionARN
-      PathPattern: /auth/*
-
-  CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
       DistributionConfig:

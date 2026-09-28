@@ -1,0 +1,62 @@
+{
+  "version": "54.0.0",
+  "files": {
+    "3bc8f670cb4867721babcf3c831b0e63de8189454fd87765314ae92feb048b1f": {
+      "displayName": "function/sprint-capacity-api-lambda/Code",
+      "source": {
+        "path": "asset.3bc8f670cb4867721babcf3c831b0e63de8189454fd87765314ae92feb048b1f",
+        "packaging": "zip"
+      },
+      "destinations": {
+        "current_account-current_region-22773ab5": {
+          "bucketName": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}",
+          "objectKey": "3bc8f670cb4867721babcf3c831b0e63de8189454fd87765314ae92feb048b1f.zip",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-file-publishing-role-${AWS::AccountId}-${AWS::Region}"
+        }
+      }
+    },
+    "61f0bc9981a42b4a9cd0ddaa735efd484c1b95859d9a351813aa3c8a1384bb1d": {
+      "displayName": "auth Nested Stack Template",
+      "source": {
+        "path": "amplifysprintcapacityplannerrodolfojaramillosandbox504fb986b7auth364B7FAB.nested.template.json",
+        "packaging": "file"
+      },
+      "destinations": {
+        "current_account-current_region-8fd076ec": {
+          "bucketName": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}",
+          "objectKey": "61f0bc9981a42b4a9cd0ddaa735efd484c1b95859d9a351813aa3c8a1384bb1d.json",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-file-publishing-role-${AWS::AccountId}-${AWS::Region}"
+        }
+      }
+    },
+    "3d38875506c97054d5d187b0db2a75c213b75a48afbbb518b996f89c87a5aedc": {
+      "displayName": "function Nested Stack Template",
+      "source": {
+        "path": "amplifysprintcapacityplannerrodolfojaramillosandbox504fb986b7function8B6B042A.nested.template.json",
+        "packaging": "file"
+      },
+      "destinations": {
+        "current_account-current_region-34d66c97": {
+          "bucketName": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}",
+          "objectKey": "3d38875506c97054d5d187b0db2a75c213b75a48afbbb518b996f89c87a5aedc.json",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-file-publishing-role-${AWS::AccountId}-${AWS::Region}"
+        }
+      }
+    },
+    "ddb8bc22c33eba4b2ae13ea28f7e70b3d3f3cb41c89268a2df7e87f1dc4a60fd": {
+      "displayName": "amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7 Template",
+      "source": {
+        "path": "amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7.template.json",
+        "packaging": "file"
+      },
+      "destinations": {
+        "current_account-current_region-a6fe5f5a": {
+          "bucketName": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}",
+          "objectKey": "ddb8bc22c33eba4b2ae13ea28f7e70b3d3f3cb41c89268a2df7e87f1dc4a60fd.json",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-file-publishing-role-${AWS::AccountId}-${AWS::Region}"
+        }
+      }
+    }
+  },
+  "dockerImages": {}
+}

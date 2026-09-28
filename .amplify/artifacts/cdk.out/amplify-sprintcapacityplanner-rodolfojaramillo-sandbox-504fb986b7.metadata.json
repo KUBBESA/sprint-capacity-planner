@@ -1,0 +1,710 @@
+{
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7": [
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...defineBackend in @aws-amplify/backend...",
+        "<anonymous> (/Users/rodolfojaramillo/dev/kubbesa/sprint_capacity_planner/amplify/backend.ts:5:1)",
+        "...node internals, @aws-amplify/backend-deployer, @aws-cdk/toolkit-lib..."
+      ]
+    },
+    {
+      "type": "aws:cdk:stack-tags",
+      "data": [
+        {
+          "key": "amplify:deployment-type",
+          "value": "sandbox"
+        },
+        {
+          "key": "created-by",
+          "value": "amplify"
+        }
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/deploymentType": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "deploymentType"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, defineBackend in @aws-amplify/backend...",
+        "<anonymous> (/Users/rodolfojaramillo/dev/kubbesa/sprint_capacity_planner/amplify/backend.ts:5:1)",
+        "...node internals, @aws-amplify/backend-deployer, @aws-cdk/toolkit-lib..."
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/region": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "region"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, defineBackend in @aws-amplify/backend...",
+        "<anonymous> (/Users/rodolfojaramillo/dev/kubbesa/sprint_capacity_planner/amplify/backend.ts:5:1)",
+        "...node internals, @aws-amplify/backend-deployer, @aws-cdk/toolkit-lib..."
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/auth": [
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)",
+        "...defineBackend in @aws-amplify/backend...",
+        "<anonymous> (/Users/rodolfojaramillo/dev/kubbesa/sprint_capacity_planner/amplify/backend.ts:5:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/userPoolId": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "userPoolId"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/webClientId": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "webClientId"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/identityPoolId": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "identityPoolId"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/authRegion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "authRegion"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/allowUnauthenticatedIdentities": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "allowUnauthenticatedIdentities"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/signupAttributes": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "signupAttributes"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/usernameAttributes": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "usernameAttributes"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/verificationMechanisms": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "verificationMechanisms"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/passwordPolicyMinLength": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "passwordPolicyMinLength"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/passwordPolicyRequirements": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "passwordPolicyRequirements"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/mfaConfiguration": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "mfaConfiguration"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/mfaTypes": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "mfaTypes"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/passwordlessOptions": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "passwordlessOptions"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/socialProviders": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "socialProviders"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/oauthCognitoDomain": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "oauthCognitoDomain"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/oauthScope": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "oauthScope"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/oauthRedirectSignIn": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "oauthRedirectSignIn"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/oauthRedirectSignOut": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "oauthRedirectSignOut"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/oauthResponseType": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "oauthResponseType"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/oauthClientId": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "oauthClientId"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/groups": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "groups"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/function": [
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)",
+        "...defineBackend in @aws-amplify/backend...",
+        "<anonymous> (/Users/rodolfojaramillo/dev/kubbesa/sprint_capacity_planner/amplify/backend.ts:5:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/definedFunctions": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "definedFunctions"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...<anonymous> in @aws-amplify/backend-output-storage...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend-output-storage, @aws-amplify/backend-function, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/BootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BootstrapVersion"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/CheckBootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CheckBootstrapVersion"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/auth/amplifysprintcapacityplannerrodolfojaramillosandbox504fb986b7authamplifyAuthUserPoolDE7DABBFRef": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "amplifysprintcapacityplannerrodolfojaramillosandbox504fb986b7authamplifyAuthUserPoolDE7DABBFRef"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, @aws-amplify/backend, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/auth/amplifysprintcapacityplannerrodolfojaramillosandbox504fb986b7authamplifyAuthUserPoolAppClient97EC722FRef": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "amplifysprintcapacityplannerrodolfojaramillosandbox504fb986b7authamplifyAuthUserPoolAppClient97EC722FRef"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, @aws-amplify/backend, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/auth/amplifysprintcapacityplannerrodolfojaramillosandbox504fb986b7authamplifyAuthIdentityPool0EC06727Ref": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "amplifysprintcapacityplannerrodolfojaramillosandbox504fb986b7authamplifyAuthIdentityPool0EC06727Ref"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, @aws-amplify/backend, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/auth.NestedStack/auth.NestedStackResource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "auth179371D7"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)",
+        "...defineBackend in @aws-amplify/backend...",
+        "<anonymous> (/Users/rodolfojaramillo/dev/kubbesa/sprint_capacity_planner/amplify/backend.ts:5:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/function/amplifysprintcapacityplannerrodolfojaramillosandbox504fb986b7functionsprintcapacityapilambda3B0A78DARef": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "amplifysprintcapacityplannerrodolfojaramillosandbox504fb986b7functionsprintcapacityapilambda3B0A78DARef"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, @aws-amplify/backend, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/function.NestedStack/function.NestedStackResource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "function1351588B"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)",
+        "...defineBackend in @aws-amplify/backend...",
+        "<anonymous> (/Users/rodolfojaramillo/dev/kubbesa/sprint_capacity_planner/amplify/backend.ts:5:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/CDKMetadata/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CDKMetadata"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, @aws-amplify/backend, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/CDKMetadata/Condition": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CDKMetadataAvailable"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, @aws-amplify/backend, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/auth/amplifyAuth/IdentityPool": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "amplifyAuthIdentityPool3FDE84CC"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...@aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)",
+        "...defineBackend in @aws-amplify/backend...",
+        "<anonymous> (/Users/rodolfojaramillo/dev/kubbesa/sprint_capacity_planner/amplify/backend.ts:5:1)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/auth/amplifyAuth/IdentityPoolRoleAttachment": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "amplifyAuthIdentityPoolRoleAttachment045F17C8"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...@aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)",
+        "...defineBackend in @aws-amplify/backend...",
+        "<anonymous> (/Users/rodolfojaramillo/dev/kubbesa/sprint_capacity_planner/amplify/backend.ts:5:1)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/auth/CDKMetadata/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CDKMetadata"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, @aws-amplify/backend...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/auth/CDKMetadata/Condition": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CDKMetadataAvailable"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, @aws-amplify/backend...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/function/sprint-capacity-api-lambda/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "sprintcapacityapilambda62D9BD88"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, @aws-amplify/backend-function, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend..."
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/function/CDKMetadata/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CDKMetadata"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, @aws-amplify/backend...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/function/CDKMetadata/Condition": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CDKMetadataAvailable"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, @aws-amplify/backend...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/auth/amplifyAuth/UserPool/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "amplifyAuthUserPool4BA7F805"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend..."
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/auth/amplifyAuth/UserPoolAppClient/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "amplifyAuthUserPoolAppClient2626C6F8"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)",
+        "...@aws-amplify/backend..."
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/auth/amplifyAuth/authenticatedUserRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "amplifyAuthauthenticatedUserRoleD8DA3689"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/auth/amplifyAuth/unauthenticatedUserRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "amplifyAuthunauthenticatedUserRole2B524D9E"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, @aws-amplify/auth-construct, @aws-amplify/backend-auth, <anonymous> in @aws-amplify/backend...",
+        "Array.forEach (:)"
+      ]
+    }
+  ],
+  "/amplify-sprintcapacityplanner-rodolfojaramillo-sandbox-504fb986b7/function/sprint-capacity-api-lambda/ServiceRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "sprintcapacityapilambdaServiceRoleAD79B821"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, @aws-amplify/backend-function, @aws-amplify/backend...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ]
+}
