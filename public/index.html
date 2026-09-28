@@ -1426,7 +1426,7 @@ function renderAuthBadge() {
   if (!el) return;
   if (AUTH_MODE === 'authed' && AUTH_USER) {
     el.innerHTML = `<i class="fa-brands fa-jira text-white/80"></i> ${escapeHtml(AUTH_USER.displayName || AUTH_USER.email || 'Usuario')}`
-      + `<a href="https://sprint.crediviva.com.pa/auth/logout" title="Cerrar sesión" class="ml-2 text-rose-300/90 hover:text-rose-200 text-[11px]"><i class="fa-solid fa-right-from-bracket"></i> Salir</a>`;
+      + `<a href="https://sprint.kubbesa.net/auth/logout" title="Cerrar sesión" class="ml-2 text-rose-300/90 hover:text-rose-200 text-[11px]"><i class="fa-solid fa-right-from-bracket"></i> Salir</a>`;
     el.classList.remove('hidden');
   } else {
     el.classList.add('hidden');
@@ -1436,7 +1436,7 @@ function renderAuthBadge() {
 /* Devuelve 'authed' (usuario válido), 'required' (hay OAuth pero no logueado) o 'local' (proxy sin /auth/*) */
 async function authMe() {
   try {
-    const res = await fetch('https://sprint.crediviva.com.pa/auth/me', { credentials: 'include' });
+    const res = await fetch('https://sprint.kubbesa.net/auth/me', { credentials: 'include' });
     if (res.status === 401) { AUTH_MODE = 'required'; AUTH_USER = null; renderAuthBadge(); return AUTH_MODE; }
     if (!res.ok) { AUTH_MODE = 'local'; AUTH_USER = null; renderAuthBadge(); return AUTH_MODE; }
     const u = await res.json();
@@ -1733,7 +1733,7 @@ function deleteSession() {
       <i class="fa-brands fa-jira text-4xl text-blue-600 mb-3 inline-block"></i>
       <h2 class="text-base font-bold text-slate-800 mb-1">Sprint Capacity Planner</h2>
       <p class="text-sm text-slate-500 mb-5">Inicia sesión con tu cuenta de Atlassian para planificar con tu equipo.</p>
-      <a href="https://sprint.crediviva.com.pa/auth/login" class="inline-block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm py-2.5 rounded-lg">Entrar con Atlassian</a>
+      <a href="https://sprint.kubbesa.net/auth/login" class="inline-block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm py-2.5 rounded-lg">Entrar con Atlassian</a>
     </div>
   </div>
 </body>
