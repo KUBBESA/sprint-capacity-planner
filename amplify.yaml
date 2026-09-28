@@ -2,10 +2,13 @@ version: 1
 applications:
   - appRoot: .
     frontend:
-      phase: build
-      build:
-        commands:
-          - npx @aws-amplify/backend-cli sandbox
+      phases:
+        preBuild:
+          commands:
+            - npm install
+        build:
+          commands:
+            - echo "Build completo - frontend en public/"
       artifacts:
         baseDirectory: public
         files:
@@ -13,10 +16,10 @@ applications:
       rewritesAndRedirects:
         # API routes → Lambda function
         - source: /auth/<*>
-          target: https://{apiUrl}/auth/$1
+          target: https://9smw7p8nwh.execute-api.us-east-1.amazonaws.com/prod/auth/$1
           status: 200
         - source: /api/<*>
-          target: https://{apiUrl}/api/$1
+          target: https://9smw7p8nwh.execute-api.us-east-1.amazonaws.com/prod/api/$1
           status: 200
         # SPA fallback
         - source: /<*>
