@@ -1,0 +1,24 @@
+version: 1
+applications:
+  - appRoot: .
+    frontend:
+      phase: build
+      build:
+        commands:
+          - npx @aws-amplify/backend-cli sandbox
+      artifacts:
+        baseDirectory: public
+        files:
+          - '**/*'
+      rewritesAndRedirects:
+        # API routes → Lambda function
+        - source: /auth/<*>
+          target: https://{apiUrl}/auth/$1
+          status: 200
+        - source: /api/<*>
+          target: https://{apiUrl}/api/$1
+          status: 200
+        # SPA fallback
+        - source: /<*>
+          target: /index.html
+          status: 404

@@ -1,0 +1,23 @@
+{
+  "name": "sprint-capacity-planner",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "npx @aws-amplify/backend-cli sandbox",
+    "build": "npx @aws-amplify/backend-cli sandbox",
+    "deploy": "npx @aws-amplify/backend-cli sandbox",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "aws-amplify": "^6.0.0"
+  },
+  "devDependencies": {
+    "@aws-amplify/backend": "^1.25.1",
+    "@aws-amplify/backend-cli": "^1.10.0",
+    "aws-cdk-lib": "^2.268.0",
+    "constructs": "^10.8.1",
+    "typescript": "^5.0.0",
+    "tsx": "^4.0.0",
+    "esbuild": "^0.28.0"
+  }
+}
