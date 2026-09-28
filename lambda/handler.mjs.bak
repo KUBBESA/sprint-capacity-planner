@@ -8,9 +8,6 @@ import { randomUUID } from 'node:crypto';
 // planner-core.mjs vive en /opt (capa Lambda) y, para test local, en la raiz del proyecto.
 let plannerCore = null;
 try { plannerCore = await import('/opt/planner-core.mjs'); }
-// Agregado: S3 para servir frontend
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
-
 catch (_e) { plannerCore = await import('../planner-core.mjs'); }
 const { createJiraApi, jiraPriority, parseHours, hoursToJira, buildStoryFields, requiredAsTbd, collectAccountReferences, scrubSessions, STORY_DEV_FIELD, STORY_QA_FIELD } = plannerCore;
 
@@ -503,4 +500,4 @@ export async function handler(event) {
 
 // exports documentados (purezas re-exportadas para test compartido si se necesita)
 export { jiraPriority, parseHours, hoursToJira, buildStoryFields, requiredAsTbd, STORY_DEV_FIELD, STORY_QA_FIELD };
-export const __internals = { memSessions, memPersonal };const STATIC_BUCKET = process.env.STATIC_BUCKET || 'scp-static-481414168664-us-east-1';
+export const __internals = { memSessions, memPersonal };
